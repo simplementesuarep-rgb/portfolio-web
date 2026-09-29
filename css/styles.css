@@ -52,6 +52,12 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Sin barra de scroll visible; el scroll sigue funcionando */
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
 
 body {

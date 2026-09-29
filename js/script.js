@@ -365,10 +365,6 @@ async function runLoader() {
 
   await wait(250);
 
-  // Al volver el scroll aparece la barra y cambia el ancho útil: se mide ya con ella
-  lenis?.start();
-  gsap.set(name, { width: "100%" });
-
   // El contador se disuelve y el nombre baja a la posición exacta del footer
   const footerName = document.querySelector(".footer__name");
   const dy = footerName.getBoundingClientRect().top - name.getBoundingClientRect().top;
@@ -385,6 +381,7 @@ async function runLoader() {
   await gsap.to(loader, { clipPath: "inset(0 0 100% 0)", duration: 0.8, ease: "power4.inOut", delay: 0.2 });
 
   loader.remove();
+  lenis?.start();
 }
 
 
