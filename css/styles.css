@@ -160,11 +160,15 @@ html.lenis body {
   justify-self: end;
 }
 
-/* Footer: siempre visible; el nombre se junta al llegar al final (script.js) */
+/* Footer: siempre visible; el nombre se junta al llegar al final y
+   entonces aparecen LinkedIn e Instagram a los lados (script.js).
+   Todo comparte una celda de la grid, alineado por la línea base. */
 .footer {
   position: fixed;
   inset: auto 0 0;
   z-index: 50;
+  display: grid;
+  align-items: baseline;
   padding: 0 var(--margin) 10px;
   color: var(--color-ink);
   mix-blend-mode: difference;
@@ -172,8 +176,12 @@ html.lenis body {
 }
 
 .footer__links {
-  display: flex;
-  justify-content: space-between;
+  display: contents;
+}
+
+.footer__link,
+.footer__name {
+  grid-area: 1 / 1;
 }
 
 .footer__link {
@@ -183,14 +191,23 @@ html.lenis body {
   line-height: var(--lh);
   text-transform: uppercase;
   font-feature-settings: "case";
+  visibility: hidden;
   pointer-events: auto;
+}
+
+.footer__link--linkedin {
+  justify-self: start;
+}
+
+.footer__link--instagram {
+  justify-self: end;
 }
 
 .footer__name {
   display: flex;
   justify-content: space-between;
+  justify-self: center;
   width: 100%;
-  margin-inline: auto;
   font-size: var(--fs-display);
   line-height: var(--lh);
   white-space: nowrap;
@@ -222,14 +239,12 @@ html.lenis body {
   overflow: hidden;
 }
 
-/* Carga: el nombre se forma con tinta y la capa sube (script.js).
-   Si el JS no llega en 4 s, la capa se oculta sola. */
+/* Carga: una masa negra cubre la pantalla y se retira hasta dejar el
+   nombre (script.js). Si el JS no llega en 4 s, la capa se oculta sola. */
 .loader {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
   background: var(--color-bg);
   animation: loader-fallback 0s 4s forwards;
 }
@@ -238,13 +253,36 @@ html.lenis body {
   animation: none;
 }
 
+/* Capa que recibe el filtro de tinta: fondo transparente para que el
+   umbral actúe sobre la masa y las letras */
+.loader__ink {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.loader__mass {
+  position: absolute;
+  inset: 0;
+  background: var(--color-text);
+  filter: url(#loader-erosion);
+}
+
+.loader__defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
 .loader__name {
+  position: relative;
   font-size: var(--fs-display);
   line-height: var(--lh);
+  color: var(--color-text);
   text-transform: uppercase;
   font-feature-settings: "case";
   white-space: nowrap;
-  visibility: hidden;
 }
 
 @keyframes loader-fallback {
