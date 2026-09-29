@@ -248,7 +248,6 @@ html.lenis body {
   left: 0;
   z-index: 60;
   padding: 6px 14px;
-  border-radius: 999px;
   font-size: var(--fs-small);
   line-height: var(--lh);
   text-transform: uppercase;
@@ -344,6 +343,28 @@ html.lenis body {
 .photo--portrait {
   justify-self: end;
   width: calc(50% - var(--gutter) / 2);
+}
+
+/* Home: todas las fotos en las dos columnas centrales de la grid */
+.gallery--center {
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  column-gap: var(--gutter);
+  padding-inline: var(--margin);
+}
+
+.gallery--center .photo {
+  grid-column: 2 / span 2;
+  justify-self: stretch;
+  width: auto;
+}
+
+/* Scroll infinito: sin hueco para el footer (no hay final) y con la altura
+   que fija script.js para que el bucle no se note */
+[data-scroll="infinite"] .gallery {
+  grid-auto-rows: max-content; /* con la altura fija, que las filas no encojan */
+  align-content: start;
+  padding-bottom: 0;
+  overflow: clip;
 }
 
 .photo img {

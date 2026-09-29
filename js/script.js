@@ -13,15 +13,21 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matc
 
 let lenis = null;
 
+const isInfiniteScroll = () => document.body.dataset.scroll === "infinite";
+
 function initLenis() {
   if (reducedMotion) return;
 
-  // Misma sensación que Almira Kho: rueda al 80 % y frenada exponencial de 1,2 s
+  // Frenada exponencial larga (más suave que Almira Kho, que usa 1,2 s y 0,8).
+  // Con data-scroll="infinite" en el body, al llegar al final se vuelve al principio.
+  const infinite = isInfiniteScroll();
   lenis = new Lenis({
     autoRaf: false,
-    duration: 1.2,
+    duration: 1.8,
     easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
-    wheelMultiplier: 0.8,
+    wheelMultiplier: 0.7,
+    infinite,
+    syncTouch: infinite, // Lenis lo necesita para el scroll infinito en táctil
   });
   lenis.on("scroll", ScrollTrigger.update);
 
@@ -90,6 +96,39 @@ function createInkFilter() {
   };
 
   return { id, render, remove: () => filter.remove() };
+}
+
+// Variante para formas rellenas (la etiqueta del cursor): antes del desenfoque,
+// un ruido deforma los bordes para que la mancha sea orgánica y no un rectángulo
+// con esquinas redondeadas. render({ blur, a, b, distort })
+function createMorphFilter() {
+  const filter = createInkFilter();
+  const node = document.getElementById(filter.id);
+  const blur = node.querySelector("feGaussianBlur");
+
+  const noise = document.createElementNS(SVG_NS, "feTurbulence");
+  noise.setAttribute("type", "fractalNoise");
+  noise.setAttribute("baseFrequency", "0.06");
+  noise.setAttribute("numOctaves", "2");
+  noise.setAttribute("result", "noise");
+
+  const displace = document.createElementNS(SVG_NS, "feDisplacementMap");
+  displace.setAttribute("in", "SourceGraphic");
+  displace.setAttribute("in2", "noise");
+  displace.setAttribute("xChannelSelector", "R");
+  displace.setAttribute("yChannelSelector", "G");
+  displace.setAttribute("result", "shape");
+
+  node.prepend(noise, displace);
+  blur.setAttribute("in", "shape");
+
+  return {
+    ...filter,
+    render: (state) => {
+      displace.setAttribute("scale", state.distort);
+      filter.render(state);
+    },
+  };
 }
 
 // Revela un elemento: las manchas de tinta se condensan en el texto
@@ -213,8 +252,8 @@ function initSoundToggle() {
 
 /* ==========================================================================
    5. Galería
-   Cada foto se mueve por dentro de su marco al hacer scroll (parallax) y, al
-   pasar el ratón, la tinta muerde sus bordes de forma irregular.
+   Cada foto se mueve por dentro de su marco al hacer scroll (parallax). En la
+   home el scroll es infinito: la galería se repite sin final.
    ========================================================================== */
 
 // Parallax: la foto está ampliada dentro del marco y se desplaza en vertical
@@ -232,150 +271,44 @@ function initPhotoParallax(photo) {
   });
 }
 
-// Máscara del hover: un campo de 0 (borde) a 1 (interior) con ruido suave,
-// para que al subir el umbral la foto se coma desde los bordes en manchas.
-// Se calcula una vez por proporción; el hover solo mueve el umbral.
-const EDGE_DEPTH = 0.18; // parte del lado corto donde actúa la tinta
-const EDGE_NOISE = 0.25; // peso del ruido frente a la distancia al borde
-const EDGE_SLOPE = 40;   // dureza del corte
-const EDGE_REST = -0.05; // umbral sin hover: toda la foto visible
-const EDGE_HOVER = 0.12; // umbral con hover
+// Scroll infinito: se añaden copias de las fotos hasta cubrir una pantalla y la
+// galería se recorta a (alto de las originales + una pantalla). Así el final se
+// ve igual que el principio y Lenis puede volver a 0 sin que se note.
+function initInfiniteGallery(gallery) {
+  const originals = [...gallery.children];
+  const sets = () => gallery.children.length / originals.length;
 
-const edgeMasks = new Map();
-
-function edgeMask(ratio) {
-  const key = ratio.toFixed(2);
-  if (edgeMasks.has(key)) return edgeMasks.get(key);
-
-  const w = 480;
-  const h = Math.round(w / ratio);
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-  // Ruido: una retícula aleatoria pequeña ampliada y desenfocada, en dos escalas.
-  // Se dibuja más grande que el lienzo para que el desenfoque no oscurezca los bordes.
-  const octave = (cells, alpha) => {
-    const grid = document.createElement("canvas");
-    grid.width = cells;
-    grid.height = Math.max(2, Math.round(cells / ratio));
-    const gctx = grid.getContext("2d");
-    const pixels = gctx.createImageData(grid.width, grid.height);
-    for (let i = 0; i < pixels.data.length; i += 4) {
-      pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = Math.random() * 255;
-      pixels.data[i + 3] = 255;
-    }
-    gctx.putImageData(pixels, 0, 0);
-
-    const cell = w / cells;
-    ctx.globalAlpha = alpha;
-    ctx.filter = `blur(${cell / 2}px)`;
-    ctx.drawImage(grid, -cell, -cell, w + cell * 2, h + cell * 2);
-  };
-  octave(10, 1);
-  octave(28, 0.5);
-
-  // Normaliza el ruido y lo combina con la distancia al borde
-  const image = ctx.getImageData(0, 0, w, h);
-  const data = image.data;
-  let min = 255;
-  let max = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    min = Math.min(min, data[i]);
-    max = Math.max(max, data[i]);
-  }
-
-  const depth = EDGE_DEPTH * Math.min(w, h);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      const noise = (data[i] - min) / (max - min || 1);
-      const edge = Math.min(1, Math.min(x, w - 1 - x, y, h - 1 - y) / depth);
-      const value = edge * (1 - EDGE_NOISE) + noise * EDGE_NOISE;
-      data[i] = data[i + 1] = data[i + 2] = value * 255;
-      data[i + 3] = 255;
-    }
-  }
-  ctx.putImageData(image, 0, 0);
-
-  const url = canvas.toDataURL();
-  edgeMasks.set(key, url);
-  return url;
-}
-
-function createEdgeFilter(ratio) {
-  ensureInkDefs();
-
-  const id = `ink-${++inkCount}`;
-  const filter = document.createElementNS(SVG_NS, "filter");
-  filter.id = id;
-  filter.setAttribute("x", "0");
-  filter.setAttribute("y", "0");
-  filter.setAttribute("width", "1");
-  filter.setAttribute("height", "1");
-  filter.setAttribute("color-interpolation-filters", "sRGB");
-
-  const mask = document.createElementNS(SVG_NS, "feImage");
-  mask.setAttribute("href", edgeMask(ratio));
-  mask.setAttribute("preserveAspectRatio", "none");
-  mask.setAttribute("result", "field");
-
-  const threshold = document.createElementNS(SVG_NS, "feColorMatrix");
-  threshold.setAttribute("in", "field");
-  threshold.setAttribute("type", "matrix");
-  threshold.setAttribute("result", "mask");
-
-  const clip = document.createElementNS(SVG_NS, "feComposite");
-  clip.setAttribute("in", "SourceGraphic");
-  clip.setAttribute("in2", "mask");
-  clip.setAttribute("operator", "in");
-
-  filter.append(mask, threshold, clip);
-  inkDefs.append(filter);
-
-  // Alfa = pendiente * (valor - umbral) + 0,5: visible donde el campo supera el umbral
-  const render = (limit) => {
-    const cut = 0.5 - EDGE_SLOPE * limit;
-    threshold.setAttribute("values", `0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${EDGE_SLOPE} 0 0 0 ${cut}`);
-  };
-
-  return { id, render };
-}
-
-function initPhotoHover(photo) {
-  const state = { limit: EDGE_REST };
-  let filter = null;
-
-  const render = () => filter.render(state.limit);
-
-  photo.addEventListener("mouseenter", () => {
-    filter ??= createEdgeFilter(photo.offsetWidth / photo.offsetHeight);
-    render();
-    photo.style.filter = `url(#${filter.id})`;
-    gsap.to(state, { limit: EDGE_HOVER, duration: 0.6, ease: "power3.out", overwrite: true, onUpdate: render });
-  });
-
-  photo.addEventListener("mouseleave", () => {
-    if (!filter) return;
-    gsap.to(state, {
-      limit: EDGE_REST,
-      duration: 0.5,
-      ease: "power2.inOut",
-      overwrite: true,
-      onUpdate: render,
-      onComplete: () => { photo.style.filter = ""; },
+  const addCopy = () => {
+    originals.forEach((photo) => {
+      const copy = photo.cloneNode(true);
+      copy.setAttribute("aria-hidden", "true");
+      const img = copy.querySelector("img");
+      img.alt = "";
+      img.style.transform = ""; // sin el parallax copiado de la original
+      gallery.append(copy);
+      initPhotoParallax(copy);
     });
-  });
+  };
+
+  const fit = () => {
+    if (sets() === 1) addCopy();
+
+    const cycle = gallery.children[originals.length].offsetTop - originals[0].offsetTop;
+    while ((sets() - 1) * cycle < window.innerHeight) addCopy();
+
+    gallery.style.height = `${cycle + window.innerHeight}px`;
+  };
+
+  fit();
+  window.addEventListener("resize", fit);
 }
 
 function initGallery() {
-  if (reducedMotion) return;
+  const gallery = document.querySelector(".gallery");
+  if (!gallery || reducedMotion) return;
 
-  document.querySelectorAll(".photo").forEach((photo) => {
-    initPhotoParallax(photo);
-    initPhotoHover(photo);
-  });
+  gallery.querySelectorAll(".photo").forEach(initPhotoParallax);
+  if (lenis?.options.infinite) initInfiniteGallery(gallery);
 }
 
 
@@ -392,7 +325,9 @@ function isAtPageEnd() {
 
 function initFooter() {
   const name = document.querySelector(".footer__name");
-  if (!name) return;
+
+  // Con scroll infinito no hay final de página: el nombre se queda separado
+  if (!name || isInfiniteScroll()) return;
 
   const words = [...name.querySelectorAll(".footer__word")];
   const links = [...document.querySelectorAll(".footer__link")];
@@ -462,7 +397,7 @@ function initFooter() {
 /* ==========================================================================
    7. Etiqueta del cursor
    Sobre los elementos con data-cursor="Texto" aparece una píldora que sigue
-   al ratón con inercia. Entra y sale con el efecto de tinta. Solo con ratón.
+   al ratón con inercia. Entra y sale con morph de tinta. Solo con ratón.
    ========================================================================== */
 
 const CURSOR_INERTIA = 0.1; // fracción de la distancia que recorre por fotograma a 60 fps
@@ -478,14 +413,13 @@ function initCursorTag() {
   let visible = false; // está en pantalla, aunque sea disolviéndose
 
   // Un solo estado de tinta para entrar y salir: si se cambia a mitad, la
-  // animación sigue desde donde está en vez de saltar
-  const filter = createInkFilter();
-  const DISSOLVED = { blur: 10, a: INK_AMPLITUDE, b: INK_CUT, opacity: 0 };
+  // animación sigue desde donde está en vez de saltar. Disuelta, el corte del
+  // alfa es tan alto que la mancha desaparece; al bajar se condensa en la etiqueta.
+  const filter = createMorphFilter();
+  const DISSOLVED = { blur: 9, a: INK_AMPLITUDE, b: -19, distort: 18 };
+  const INKED = { blur: 0, a: INK_AMPLITUDE, b: INK_CUT, distort: 0 };
   const state = { ...DISSOLVED };
-  const render = () => {
-    filter.render(state);
-    tag.style.opacity = state.opacity;
-  };
+  const render = () => filter.render(state);
 
   gsap.set(tag, { xPercent: -50, yPercent: -50 });
   render();
@@ -493,10 +427,10 @@ function initCursorTag() {
   const place = () => gsap.set(tag, { x: pos.x, y: pos.y });
 
   // Cada cambio de estado corta la animación anterior y sigue desde ahí
-  let tweens = [];
-  const animate = (...next) => {
-    tweens.forEach((tween) => tween.kill());
-    tweens = next;
+  let animation = null;
+  const animate = (timeline) => {
+    animation?.kill();
+    animation = timeline;
   };
 
   const show = (text) => {
@@ -514,18 +448,9 @@ function initCursorTag() {
     }
 
     tag.style.filter = `url(#${filter.id})`;
-    animate(
-      gsap.to(state, { blur: 0, opacity: 1, duration: 0.6, ease: "power3.out", onUpdate: render }),
-      gsap.to(state, {
-        a: 1,
-        b: 0,
-        duration: 0.3,
-        delay: 0.3,
-        ease: "power1.in",
-        onUpdate: render,
-        onComplete: () => { tag.style.filter = ""; },
-      }),
-    );
+    animate(gsap.timeline({ onComplete: () => { tag.style.filter = ""; } })
+      .to(state, { ...INKED, duration: 0.55, ease: "power3.out", onUpdate: render })
+      .to(state, { a: 1, b: 0, duration: 0.15, ease: "power1.in", onUpdate: render }));
   };
 
   const hide = () => {
@@ -533,21 +458,15 @@ function initCursorTag() {
     shown = false;
 
     tag.style.filter = `url(#${filter.id})`;
-    animate(
-      gsap.to(state, { a: DISSOLVED.a, b: DISSOLVED.b, duration: 0.15, ease: "power1.out", onUpdate: render }),
-      gsap.to(state, {
-        blur: DISSOLVED.blur,
-        opacity: 0,
-        duration: 0.5,
-        ease: "power2.in",
-        onUpdate: render,
-        onComplete: () => {
-          visible = false;
-          tag.style.visibility = "hidden";
-          tag.style.filter = "";
-        },
-      }),
-    );
+    animate(gsap.timeline({
+      onComplete: () => {
+        visible = false;
+        tag.style.visibility = "hidden";
+        tag.style.filter = "";
+      },
+    })
+      .to(state, { a: INKED.a, b: INKED.b, duration: 0.08, ease: "none", onUpdate: render })
+      .to(state, { ...DISSOLVED, duration: 0.5, ease: "power2.in", onUpdate: render }));
   };
 
   // Muestra u oculta la etiqueta según lo que haya bajo el puntero

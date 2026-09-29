@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js" defer></script>
   <script src="js/script.js" defer></script>
 </head>
-<body>
+<body data-scroll="infinite">
 
   <div class="loader" aria-hidden="true">
     <div class="loader__stage">
@@ -35,137 +35,29 @@
   </header>
 
   <main>
-    <!-- A sangre y sin separación: verticales en 2 columnas y horizontales a todo el ancho, alineadas a la derecha -->
-    <section class="gallery" aria-label="Selected work">
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/12-800.avif 800w,
-              assets/img/12-1600.avif 1600w,
-              assets/img/12-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/12-800.webp 800w,
-              assets/img/12-1600.webp 1600w,
-              assets/img/12-2400.webp 2400w">
-          <img src="assets/img/12-1600.webp" width="3000" height="2000" alt="Person leaning out of a doorway, seen from below" fetchpriority="high" decoding="async">
-        </picture>
-      </figure>
-
+    <!-- Home: fotos pegadas entre sí en las dos columnas centrales; el scroll es infinito -->
+    <section class="gallery gallery--center" aria-label="Selected work">
       <figure class="photo photo--portrait" data-cursor="View">
         <picture>
-          <source type="image/avif" sizes="calc(50vw - 5px)" srcset="assets/img/3-640.avif 640w,
+          <source type="image/avif" sizes="calc(50vw - 25px)" srcset="assets/img/3-640.avif 640w,
               assets/img/3-1280.avif 1280w,
               assets/img/3-2000.avif 2000w">
-          <source type="image/webp" sizes="calc(50vw - 5px)" srcset="assets/img/3-640.webp 640w,
+          <source type="image/webp" sizes="calc(50vw - 25px)" srcset="assets/img/3-640.webp 640w,
               assets/img/3-1280.webp 1280w,
               assets/img/3-2000.webp 2000w">
-          <img src="assets/img/3-1280.webp" width="2000" height="3000" alt="Person in a fur hat in strong light, almost in silhouette" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/18-800.avif 800w,
-              assets/img/18-1600.avif 1600w,
-              assets/img/18-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/18-800.webp 800w,
-              assets/img/18-1600.webp 1600w,
-              assets/img/18-2400.webp 2400w">
-          <img src="assets/img/18-1600.webp" width="3000" height="2000" alt="Red-haired man in a black sweatshirt against a graffiti wall" loading="lazy" decoding="async">
+          <img src="assets/img/3-1280.webp" width="2000" height="3000" alt="Person in a fur hat in strong light, almost in silhouette" fetchpriority="high" decoding="async">
         </picture>
       </figure>
 
       <figure class="photo photo--portrait" data-cursor="View">
         <picture>
-          <source type="image/avif" sizes="calc(50vw - 5px)" srcset="assets/img/4-640.avif 640w,
+          <source type="image/avif" sizes="calc(50vw - 25px)" srcset="assets/img/4-640.avif 640w,
               assets/img/4-1280.avif 1280w,
               assets/img/4-2000.avif 2000w">
-          <source type="image/webp" sizes="calc(50vw - 5px)" srcset="assets/img/4-640.webp 640w,
+          <source type="image/webp" sizes="calc(50vw - 25px)" srcset="assets/img/4-640.webp 640w,
               assets/img/4-1280.webp 1280w,
               assets/img/4-2000.webp 2000w">
           <img src="assets/img/4-1280.webp" width="2000" height="3000" alt="Person wrapped in patched denim fabric, hiding half of their face" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/21-800.avif 800w,
-              assets/img/21-1600.avif 1600w,
-              assets/img/21-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/21-800.webp 800w,
-              assets/img/21-1600.webp 1600w,
-              assets/img/21-2400.webp 2400w">
-          <img src="assets/img/21-1600.webp" width="3000" height="2000" alt="Two people in camouflage jackets crouching over the camera" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/22-800.avif 800w,
-              assets/img/22-1600.avif 1600w,
-              assets/img/22-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/22-800.webp 800w,
-              assets/img/22-1600.webp 1600w,
-              assets/img/22-2400.webp 2400w">
-          <img src="assets/img/22-1600.webp" width="3000" height="2000" alt="Person covering an eye with a hand, next to a masked figure" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/30-800.avif 800w,
-              assets/img/30-1600.avif 1600w,
-              assets/img/30-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/30-800.webp 800w,
-              assets/img/30-1600.webp 1600w,
-              assets/img/30-2400.webp 2400w">
-          <img src="assets/img/30-1600.webp" width="3000" height="2000" alt="Person in a fur hat beside a masked figure in dim light" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/sesion-fotos3-9-800.avif 800w,
-              assets/img/sesion-fotos3-9-1600.avif 1600w,
-              assets/img/sesion-fotos3-9-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/sesion-fotos3-9-800.webp 800w,
-              assets/img/sesion-fotos3-9-1600.webp 1600w,
-              assets/img/sesion-fotos3-9-2400.webp 2400w">
-          <img src="assets/img/sesion-fotos3-9-1600.webp" width="3000" height="2000" alt="Sneakers in the foreground and a person sitting on a stone wall in the street" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/sesion10-03-3-800.avif 800w,
-              assets/img/sesion10-03-3-1600.avif 1600w,
-              assets/img/sesion10-03-3-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/sesion10-03-3-800.webp 800w,
-              assets/img/sesion10-03-3-1600.webp 1600w,
-              assets/img/sesion10-03-3-2400.webp 2400w">
-          <img src="assets/img/sesion10-03-3-1600.webp" width="3000" height="2000" alt="Man in a black jacket holding a pink bag in a stone doorway" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/sesion10-03-6-800.avif 800w,
-              assets/img/sesion10-03-6-1600.avif 1600w,
-              assets/img/sesion10-03-6-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/sesion10-03-6-800.webp 800w,
-              assets/img/sesion10-03-6-1600.webp 1600w,
-              assets/img/sesion10-03-6-2400.webp 2400w">
-          <img src="assets/img/sesion10-03-6-1600.webp" width="3000" height="2000" alt="Man carrying a pink striped bag on his shoulder in front of a wooden door" loading="lazy" decoding="async">
-        </picture>
-      </figure>
-
-      <figure class="photo photo--landscape" data-cursor="View">
-        <picture>
-          <source type="image/avif" sizes="100vw" srcset="assets/img/sesion10-03-8-800.avif 800w,
-              assets/img/sesion10-03-8-1600.avif 1600w,
-              assets/img/sesion10-03-8-2400.avif 2400w">
-          <source type="image/webp" sizes="100vw" srcset="assets/img/sesion10-03-8-800.webp 800w,
-              assets/img/sesion10-03-8-1600.webp 1600w,
-              assets/img/sesion10-03-8-2400.webp 2400w">
-          <img src="assets/img/sesion10-03-8-1600.webp" width="3000" height="2000" alt="Man in a black leather jacket lying back with pink striped gloves above his head" loading="lazy" decoding="async">
         </picture>
       </figure>
     </section>

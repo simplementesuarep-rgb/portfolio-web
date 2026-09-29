@@ -23,23 +23,24 @@ Cómo se preparan y se colocan las fotos en la web.
 ## Maquetación
 
 - La galería está en `index.html` dentro de `<section class="gallery">`.
-- **Las fotos van a sangre y pegadas entre sí**, sin margen ni separación. Los 20 px de margen y los 10 px de gutter solo valen para el texto.
-- Cada foto va en un `<figure class="photo photo--landscape|photo--portrait">`:
-  - `photo--landscape`: todo el ancho de la pantalla.
-  - `photo--portrait`: la mitad derecha, empezando en la columna 3 de la grid (que es el 50 % más medio gutter), hasta el borde derecho: `width: calc(50% - var(--gutter) / 2)`.
+- **Las fotos van pegadas entre sí**, sin separación vertical (`--image-gap`, 0 px). Los 20 px de margen y los 10 px de gutter solo valen para el texto.
+- Cada foto va en un `<figure class="photo photo--landscape|photo--portrait">`. En las páginas de proyecto:
+  - `photo--landscape`: todo el ancho de la pantalla, a sangre.
+  - `photo--portrait`: las 2 columnas de la derecha (`width: calc(50% - var(--gutter) / 2)`), hasta el borde derecho.
+- **Home (`gallery--center`):** de momento solo las dos verticales (3 y 4), en las dos columnas centrales de la grid (`grid-column: 2 / span 2`, 695 px a 1440). `sizes="calc(50vw - 25px)"`.
 - El marco sale de la proporción de la foto, nunca se deforma. Por el parallax, la foto va ampliada al 120 % dentro del marco y se ve en torno al 83 % de ella (ver abajo).
 - `width` y `height` en el `<img>` reservan el hueco antes de cargar, así que no hay saltos de layout.
-- `sizes`: `100vw` en horizontales y `calc(50vw - 5px)` en verticales.
+- `sizes` en proyectos: `100vw` en horizontales y `calc(50vw - 5px)` en verticales.
 - La primera foto lleva `fetchpriority="high"`; el resto `loading="lazy"`.
-- Separación vertical entre fotos: `--image-gap` (0 px) en `css/styles.css`.
-- Solo el footer queda fuera de las fotos: la galería termina con `padding-bottom: var(--footer-height) + var(--margin)`, así que al llegar al final el footer está a 20 px de la última foto y sobre fondo blanco.
+- En proyectos solo el footer queda fuera de las fotos: la galería termina con `padding-bottom: var(--footer-height) + var(--margin)`, así que al llegar al final el footer está a 20 px de la última foto y sobre fondo blanco. En la home no hay final (scroll infinito) y ese hueco no existe.
 - Navbar y footer se superponen a las fotos con `mix-blend-mode: difference`.
 
-## Movimiento y hover
+## Movimiento
 
-- **Sin animación de entrada:** las fotos ya están en su sitio al cargar la página.
-- **Scroll suave como en Almira Kho:** Lenis con `duration: 1.2`, frenada exponencial y `wheelMultiplier: 0.8` (valores sacados de su código).
+- **Sin animación de entrada ni hover sobre las fotos:** ya están en su sitio al cargar la página.
+- **Scroll suave:** Lenis con `duration: 1.8`, frenada exponencial y `wheelMultiplier: 0.7`. Es más suave que el de Almira Kho, que usa 1,2 s y 0,8 (valores sacados de su código).
+- **Scroll infinito en la home:** `<body data-scroll="infinite">` activa `infinite` en Lenis (y `syncTouch`, que lo necesita en táctil). script.js añade copias de las fotos (`aria-hidden`, sin `alt`) hasta cubrir una pantalla y fija el alto de la galería en `alto de las originales + una pantalla`. Así el final del recorrido se ve igual que el principio y el salto a 0 no se nota. Se recalcula al cambiar el tamaño de la ventana.
+- **Footer en la home:** con scroll infinito no hay final de página, así que el nombre se queda separado y a baja opacidad; LinkedIn e Instagram no aparecen. El comportamiento completo queda para las páginas de proyecto.
 - **Parallax dentro del marco:** el `<figure>` tiene la proporción de la foto y `overflow: hidden`. Dentro, la foto va al 120 % y se desplaza del -8 % al 8 % de su alto mientras cruza la pantalla (ScrollTrigger con `scrub`). El 120 % deja un 10 % de margen por cada lado, así que nunca asoma el fondo.
-- **Hover sutil:** al pasar el ratón la tinta muerde los bordes de la foto de forma irregular (unos 20 a 30 px como mucho) y al salir se vuelven a cerrar. La máscara (distancia al borde más ruido suave) se calcula una vez por proporción en un `<canvas>` y va al filtro SVG con `feImage`; el hover solo mueve el umbral, así que es ligero.
-- **Etiqueta del cursor:** sobre los elementos con `data-cursor="View"` aparece una píldora negra que sigue al ratón con inercia (0,1 por fotograma, como en Almira Kho). Entra y sale con tinta y sigue al ratón también mientras se disuelve, así que al salir rápido se desvanece detrás del puntero en vez de quedarse clavada. Si se vuelve a entrar a mitad, continúa desde donde estaba. Solo con ratón, no en táctil.
-- Con `prefers-reduced-motion` no hay parallax ni hover de tinta.
+- **Etiqueta del cursor:** sobre los elementos con `data-cursor="View"` aparece un rectángulo negro de esquinas rectas que sigue al ratón con inercia (0,1 por fotograma, como en Almira Kho). Entra y sale con morph de tinta, sin fundido de opacidad: un ruido deforma sus bordes, el desenfoque y el corte del alfa lo convierten en una mancha que encoge hasta desaparecer (y al revés al entrar). Sigue al ratón también mientras se disuelve y, si se vuelve a entrar a mitad, continúa desde donde estaba. Solo con ratón, no en táctil.
+- Con `prefers-reduced-motion` no hay Lenis, ni parallax, ni scroll infinito.
