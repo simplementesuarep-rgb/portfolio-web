@@ -18,3 +18,6 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Originales de las fotos (pesan ~150 MB): solo en local. La web usa las versiones optimizadas de assets/img/
+assets/originals/
