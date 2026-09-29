@@ -336,8 +336,18 @@ html.lenis body {
 /* El marco tiene la proporción de la foto; dentro, la foto va ampliada y se
    mueve con el scroll (parallax en script.js) */
 .photo {
+  position: relative;
   width: 100%;
   overflow: hidden;
+}
+
+/* Canvas del morph del hover (script.js): tapa la foto solo mientras dura */
+.photo__morph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .photo--portrait {

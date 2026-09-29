@@ -252,7 +252,8 @@ function initSoundToggle() {
 
 /* ==========================================================================
    5. Galería
-   Cada foto se mueve por dentro de su marco al hacer scroll (parallax). En la
+   Cada foto se mueve por dentro de su marco al hacer scroll (parallax) y, al
+   pasar el ratón, se abre en ella una mancha blanca (morph en WebGL). En la
    home el scroll es infinito: la galería se repite sin final.
    ========================================================================== */
 
@@ -268,6 +269,321 @@ function initPhotoParallax(photo) {
     yPercent: PHOTO_SHIFT,
     ease: "none",
     scrollTrigger: { trigger: photo, start: "top bottom", end: "bottom top", scrub: true },
+  });
+}
+
+// Morph del hover (a partir del de GRIDS): al pasar el ratón se abre en la foto
+// una mancha blanca que sigue al puntero con inercia y deja una estela de gotas
+// que se funden entre sí (metaballs) y se van cerrando. El borde ondula y cada
+// gota manda una onda que dobla la foto, como al tocar agua. Es un shader de
+// WebGL en un <canvas> que solo existe mientras dura el efecto.
+const MORPH = {
+  size: 96,          // radio de cada gota a 1440 px de ancho
+  hold: 0.62,        // la gota bajo el puntero, respecto a size
+  every: 10,         // px de movimiento entre gotas de la estela
+  glide: 0.17,       // inercia de la gota bajo el puntero (por fotograma a 60 fps)
+  grow: 0.22,        // s que tarda una gota en crecer
+  fade: 1.5,         // s que tarda en cerrarse
+  edge: 0.035,       // dureza del borde de la mancha
+  wobble: 44,        // px que ondula el borde
+  wobbleSize: 105,   // tamaño de cada lóbulo de la ondulación
+  wobbleSpeed: 0.5,
+  ripple: [300, 105, 75, 1.15], // onda: velocidad (px/s), longitud, ancho, caída
+  bend: 26,          // px que la onda dobla la foto
+  wakeIn: 0.3,       // s de entrada del hover
+  wakeOut: 0.55,     // s de salida
+};
+
+const MORPH_DROPS = 16; // la primera es la del puntero; el resto, la estela
+
+const MORPH_VERTEX = `
+attribute vec2 aPosition;
+void main() {
+  gl_Position = vec4(aPosition, 0.0, 1.0);
+}
+`;
+
+const MORPH_FRAGMENT = `
+precision highp float;
+
+const int DROPS = ${MORPH_DROPS};
+
+uniform sampler2D uPhoto;
+uniform vec2 uResolution;   // canvas, en píxeles reales
+uniform float uDpr;
+uniform vec2 uPhotoOffset;  // dónde está la foto dentro del marco (px CSS)
+uniform vec2 uPhotoSize;    // y cuánto mide (ampliada por el parallax)
+uniform vec4 uDrops[DROPS]; // x, y, nacimiento, radio
+uniform float uNow;
+uniform float uHover;       // 0 sin hover, 1 con hover
+uniform vec3 uPaper;        // color que se ve por la mancha
+uniform float uGrow;
+uniform float uFade;
+uniform float uEdge;
+uniform float uWobble;
+uniform float uWobbleSize;
+uniform float uWobbleSpeed;
+uniform vec4 uRipple;
+uniform float uBend;
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+    f.y
+  );
+}
+
+vec3 photo(vec2 px) {
+  return texture2D(uPhoto, clamp((px - uPhotoOffset) / uPhotoSize, 0.0, 1.0)).rgb;
+}
+
+void main() {
+  // Coordenadas como en el DOM: px CSS desde la esquina superior izquierda
+  vec2 px = vec2(gl_FragCoord.x, uResolution.y - gl_FragCoord.y) / uDpr;
+
+  // El borde de la mancha ondula: se mide sobre un plano deformado por ruido
+  vec2 q = px / uWobbleSize;
+  float t = uNow * uWobbleSpeed;
+  vec2 wobble = vec2(
+    noise(q + vec2(t, t * 0.6)),
+    noise(q + vec2(5.2, 1.3) - vec2(t * 0.7, t * 0.4))
+  ) - 0.5;
+  wobble += (vec2(
+    noise(q * 2.3 - vec2(t * 1.2, 0.0)),
+    noise(q * 2.3 + vec2(3.1, 7.7) + vec2(0.0, t))
+  ) - 0.5) * 0.5;
+  vec2 at = px + wobble * uWobble;
+
+  float field = 0.0;
+  vec2 push = vec2(0.0);
+
+  for (int i = 0; i < DROPS; i++) {
+    vec4 drop = uDrops[i];
+    float age = uNow - drop.z;
+    if (drop.w <= 0.0 || age < 0.0) continue;
+
+    // Metaballs: cada gota suma r² / d² y la mancha es donde el campo pasa de 1
+    float radius = drop.w;
+    if (i > 0) {
+      float life = max(0.0, 1.0 - age / uFade);
+      radius *= min(1.0, age / uGrow) * life * life;
+    }
+    vec2 toDrop = at - drop.xy;
+    field += (radius * radius) / max(dot(toDrop, toDrop), 1.0);
+
+    // Onda que sale de cada gota de la estela y empuja la foto hacia fuera
+    if (i > 0 && age < 4.0) {
+      vec2 away = px - drop.xy;
+      float dist = length(away);
+      float offset = dist - age * uRipple.x;
+      float envelope = exp(-(offset * offset) / (uRipple.z * uRipple.z))
+        * exp(-age * uRipple.w) * (1.0 - exp(-age / 0.1));
+      float wave = sin(offset * 6.2831853 / uRipple.y);
+      push += away / max(dist, 0.001) * wave * envelope * uBend;
+    }
+  }
+
+  float inside = smoothstep(1.0 - uEdge, 1.0 + uEdge, field) * uHover;
+  vec3 color = photo(px - push * uHover);
+  gl_FragColor = vec4(mix(color, uPaper, inside), 1.0);
+}
+`;
+
+const morphSupported = !reducedMotion
+  && window.matchMedia("(hover: hover) and (pointer: fine)").matches
+  && "WebGLRenderingContext" in window;
+
+// Color del fondo de la web (--color-bg) como vec3
+function paperColor() {
+  const probe = document.createElement("span");
+  probe.style.color = "var(--color-bg)";
+  document.body.append(probe);
+  const [r, g, b] = getComputedStyle(probe).color.match(/\d+/g).map(Number);
+  probe.remove();
+  return [r / 255, g / 255, b / 255];
+}
+
+function compileShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return shader;
+
+  console.warn(gl.getShaderInfoLog(shader));
+  return null;
+}
+
+// Canvas con su contexto WebGL, la foto como textura y los uniforms del shader
+function createMorphLayer(photo, img) {
+  const canvas = document.createElement("canvas");
+  canvas.className = "photo__morph";
+  canvas.setAttribute("aria-hidden", "true");
+
+  const gl = canvas.getContext("webgl", { antialias: false, alpha: false });
+  if (!gl) return null;
+
+  const vertex = compileShader(gl, gl.VERTEX_SHADER, MORPH_VERTEX);
+  const fragment = compileShader(gl, gl.FRAGMENT_SHADER, MORPH_FRAGMENT);
+  if (!vertex || !fragment) return null;
+
+  const program = gl.createProgram();
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  // Un triángulo que cubre todo el canvas
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const position = gl.getAttribLocation(program, "aPosition");
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+
+  const u = Object.fromEntries([
+    "uResolution", "uDpr", "uPhotoOffset", "uPhotoSize", "uDrops", "uNow", "uHover",
+    "uPaper", "uGrow", "uFade", "uEdge", "uWobble", "uWobbleSize", "uWobbleSpeed",
+    "uRipple", "uBend",
+  ].map((name) => [name, gl.getUniformLocation(program, name)]));
+
+  gl.uniform3fv(u.uPaper, paperColor());
+  gl.uniform1f(u.uGrow, MORPH.grow);
+  gl.uniform1f(u.uFade, MORPH.fade);
+  gl.uniform1f(u.uEdge, MORPH.edge);
+  gl.uniform1f(u.uWobbleSpeed, MORPH.wobbleSpeed);
+
+  photo.append(canvas);
+
+  const destroy = () => {
+    gl.deleteTexture(texture);
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    canvas.remove();
+  };
+
+  return { gl, canvas, u, destroy };
+}
+
+function initPhotoMorph(photo) {
+  if (!morphSupported) return;
+
+  const img = photo.querySelector("img");
+  const state = { hover: 0 };
+  const drops = [];             // estela: { x, y, born, radius } en px del marco
+  const data = new Float32Array(MORPH_DROPS * 4);
+  let layer = null;
+  let pointer = null;           // posición del puntero en la ventana
+  let glide = null;             // gota bajo el puntero, con inercia
+  let last = null;              // dónde se soltó la última gota
+  let now = Math.random() * 60; // cada foto arranca con un ruido distinto
+
+  const scale = () => window.innerWidth / 1440;
+
+  const draw = () => {
+    const { gl, canvas, u } = layer;
+    const frame = photo.getBoundingClientRect();
+    const picture = img.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const width = Math.round(frame.width * dpr);
+    const height = Math.round(frame.height * dpr);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      gl.viewport(0, 0, width, height);
+    }
+
+    const s = scale();
+    if (pointer) {
+      const local = { x: pointer.x - frame.left, y: pointer.y - frame.top };
+      glide ??= { ...local };
+      const ease = 1 - Math.pow(1 - MORPH.glide, gsap.ticker.deltaRatio());
+      glide.x += (local.x - glide.x) * ease;
+      glide.y += (local.y - glide.y) * ease;
+    }
+
+    data.fill(0);
+    if (glide) data.set([glide.x, glide.y, now, MORPH.size * MORPH.hold * s], 0);
+    drops.forEach((drop, i) => data.set([drop.x, drop.y, drop.born, drop.radius], (i + 1) * 4));
+
+    gl.uniform2f(u.uResolution, width, height);
+    gl.uniform1f(u.uDpr, dpr);
+    gl.uniform2f(u.uPhotoOffset, picture.left - frame.left, picture.top - frame.top);
+    gl.uniform2f(u.uPhotoSize, picture.width, picture.height);
+    gl.uniform4fv(u.uDrops, data);
+    gl.uniform1f(u.uNow, now);
+    gl.uniform1f(u.uHover, state.hover);
+    gl.uniform1f(u.uWobble, MORPH.wobble * s);
+    gl.uniform1f(u.uWobbleSize, MORPH.wobbleSize * s);
+    gl.uniform4f(u.uRipple, MORPH.ripple[0] * s, MORPH.ripple[1] * s, MORPH.ripple[2] * s, MORPH.ripple[3]);
+    gl.uniform1f(u.uBend, MORPH.bend * s);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  };
+
+  const stop = () => {
+    gsap.ticker.remove(tick);
+    layer.destroy();
+    layer = null;
+    drops.length = 0;
+    glide = null;
+    last = null;
+  };
+
+  // Se dibuja mientras hay hover y hasta que la mancha se ha cerrado del todo
+  function tick(time, deltaTime) {
+    now += deltaTime / 1000;
+    draw();
+    if (!pointer && state.hover <= 0) stop();
+  }
+
+  photo.addEventListener("pointerenter", (event) => {
+    if (!img.complete || !img.naturalWidth) return;
+    if (!layer) {
+      layer = createMorphLayer(photo, img);
+      if (!layer) return;
+      gsap.ticker.add(tick);
+    }
+
+    pointer = { x: event.clientX, y: event.clientY };
+    gsap.to(state, { hover: 1, duration: MORPH.wakeIn, ease: "power2.out", overwrite: true });
+  });
+
+  photo.addEventListener("pointermove", (event) => {
+    if (!layer) return;
+
+    pointer = { x: event.clientX, y: event.clientY };
+    const frame = photo.getBoundingClientRect();
+    const local = { x: pointer.x - frame.left, y: pointer.y - frame.top };
+    if (last && Math.hypot(local.x - last.x, local.y - last.y) < MORPH.every * scale()) return;
+
+    if (last) {
+      drops.push({ ...local, born: now, radius: MORPH.size * scale() });
+      if (drops.length > MORPH_DROPS - 1) drops.shift();
+    }
+    last = local;
+  });
+
+  photo.addEventListener("pointerleave", () => {
+    if (!layer) return;
+
+    pointer = null;
+    glide = null;
+    last = null;
+    gsap.to(state, { hover: 0, duration: MORPH.wakeOut, ease: "power2.inOut", overwrite: true });
   });
 }
 
@@ -287,6 +603,7 @@ function initInfiniteGallery(gallery) {
       img.style.transform = ""; // sin el parallax copiado de la original
       gallery.append(copy);
       initPhotoParallax(copy);
+      initPhotoMorph(copy);
     });
   };
 
@@ -307,7 +624,12 @@ function initGallery() {
   const gallery = document.querySelector(".gallery");
   if (!gallery || reducedMotion) return;
 
-  gallery.querySelectorAll(".photo").forEach(initPhotoParallax);
+  gallery.querySelectorAll(".photo").forEach((photo) => {
+    initPhotoParallax(photo);
+    initPhotoMorph(photo);
+  });
+  document.querySelectorAll(".home__feature").forEach(initPhotoMorph);
+
   if (lenis?.options.infinite) initInfiniteGallery(gallery);
 }
 
