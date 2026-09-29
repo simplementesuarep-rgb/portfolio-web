@@ -199,6 +199,29 @@ html.lenis body {
   opacity: var(--footer-idle-opacity);
 }
 
+/* Tinta: los elementos arrancan ocultos hasta que script.js los revela.
+   Si el JS no llega en 4 s, la animación los muestra igualmente. */
+[data-ink] {
+  visibility: hidden;
+  animation: ink-fallback 0s 4s forwards;
+}
+
+.ink-ready [data-ink] {
+  animation: none;
+}
+
+@keyframes ink-fallback {
+  to { visibility: visible; }
+}
+
+/* Contenedor de los filtros SVG que crea script.js */
+.ink-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 /* Hero */
 .hero {
   min-height: 100dvh;
