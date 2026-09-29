@@ -1,67 +1,76 @@
-# Tipografía: Inter
+# Tipografía: Mona Sans
 
-Decisión tomada el 2026-09-29 tras comparar en Figma con Mona Sans y otras siete familias sans-serif libres (Archivo, Bricolage Grotesque, Instrument Sans, Anybody, Schibsted Grotesk, Geist, Hanken Grotesk). Todas descartadas salvo Inter. **No se usa Inter Tight**, solo Inter.
+Decisión tomada el 2026-09-29 tras comparar en Figma Inter y Mona Sans (finalistas de una selección de ocho familias sans-serif libres). Primero se eligió Inter; después de probar ambas con más textos se cambió a **Mona Sans**: dentro de ser de palo seco, tiene más personalidad y un tono más editorial. Inter queda descartada.
 
-Las pruebas están en la página "Tipografías" del Figma del proyecto.
+Las pruebas de la primera ronda están en la página "Tipografías" del Figma del proyecto.
 
 ---
 
-## Sobre Inter
+## Sobre Mona Sans
 
-- **Origen:** diseñada por Rasmus Andersson pensando en pantallas. X-height alta y aperturas abiertas: se lee bien a tamaños pequeños. Es la fuente de la interfaz de Figma.
-- **Licencia:** OFL-1.1. Se puede usar y subir al repo público incluyendo su archivo de licencia.
-- **Variable con dos ejes:** peso 100-900 y tamaño óptico (`opsz`, 14-32), con cursiva real. El eje `opsz` hace que a tamaños grandes las letras se vean más cerradas y refinadas. El navegador lo aplica solo con `font-optical-sizing: auto`.
+- **Origen:** creada por GitHub. Versión revisada: 2.0.27.
+- **Licencia:** OFL-1.1 (`Copyright 2022 The Mona Sans Project Authors`, con Reserved Font Name "Mona"). Se puede usar y subir al repo público incluyendo el archivo de licencia. Por el nombre reservado, si algún día se modifica la fuente hay que cambiarle el nombre.
+- **Variable con tres ejes** (verificado en el archivo):
 
-## Funciones OpenType (verificadas en el archivo oficial)
+| Eje | Rango | Para qué sirve |
+|---|---|---|
+| `wght` | 200-900 | Peso, de ExtraLight a Black |
+| `wdth` | 75-125 | Ancho: de condensada a expandida |
+| `opsz` | 0-100 | Tamaño óptico |
 
-| Función | Para qué sirve |
-|---|---|
-| `case` | Corrige la puntuación en mayúsculas: `¿ ¡ ( ) -` a la altura de las versiones altas |
-| `cpsp` | Espaciado extra automático entre mayúsculas |
-| `tnum` / `pnum` | Cifras tabulares / proporcionales |
-| `zero` | Cero tachado |
-| `ss01`-`ss08`, `cv01`-`cv13` | Conjuntos estilísticos y variantes de carácter |
-| `frac`, `sups`, `subs`, `ordn` | Fracciones, superíndices, subíndices, ordinales |
+- **Cursiva real** en archivo aparte.
+
+## Funciones OpenType (verificadas en el archivo)
+
+`case`, `tnum` / `pnum`, `frac`, `sups`, `subs`, `sinf`, `numr`, `dnom`, `ordn`, `ss01`-`ss10`, `liga`, `kern`.
+
+Diferencias con Inter: **no tiene** `cpsp` (espaciado extra automático en mayúsculas), `zero` (cero tachado) ni `cv01`-`cv13`. En mayúsculas hay que ajustar `letter-spacing` a mano. Qué hace cada `ssXX` no está revisado todavía.
 
 ## Qué archivos usar
 
-Usar el paquete oficial npm **`inter-ui@4.1.1`**, carpeta `variable-latin/`:
+Fuente oficial: release **v2.0.27** de `github/mona-sans`, archivo `mona-sans-webfonts-v2.0.27.zip`, carpeta `fonts/webfonts/variable/`. Ya vienen en WOFF2.
 
-| Archivo | Peso |
-|---|---|
-| `InterVariable-subset.woff2` | 97 KB |
-| `InterVariable-Italic-subset.woff2` | 107 KB |
+| Archivo | Ejes | Peso |
+|---|---|---|
+| `MonaSansVF[opsz,wght].woff2` | peso + tamaño óptico | 134 KB |
+| `MonaSansVF-Italic[opsz,wght].woff2` | peso (la cursiva no tiene `opsz`) | 122 KB |
+| `MonaSansVF[wdth,opsz,wght].woff2` | añade el eje de ancho | 301 KB |
+| `MonaSansVF-Italic[wdth,opsz,wght].woff2` | ídem, cursiva | 275 KB |
 
-Tienen 765 glifos, con los ejes `wght` y `opsz` y todas las funciones de la tabla anterior. El subconjunto latino cubre el español (`á é í ó ú ñ ü ¿ ¡`, comillas, guiones y `€`).
-
-**No usar el subconjunto de Fontsource** (`@fontsource-variable/inter`): solo conserva `calt`, `tnum`, `pnum` y `frac` (518 glifos) y descarta `case`, `cpsp`, `zero` y las alternativas. Sin `case` las mayúsculas con signos de puntuación salen desalineadas.
+- **Recomendado para empezar:** `MonaSansVF[opsz,wght].woff2` (134 KB). Sirve para toda la maqueta salvo que el diseño juegue con el ancho.
+- **Si se usa `wdth`** (titulares condensados o expandidos, algo muy en línea con lo experimental) hay que cargar la versión de 301 KB: más del doble.
+- Los archivos **no están recortados** a un subconjunto latino (797 glifos, incluyen otros alfabetos y símbolos). Que cubren el español (`á é í ó ú ñ ü ¿ ¡ €`) está por comprobar con la primera prueba en navegador. Si el peso molesta, se puede subsetear con `pyftsubset`/`glyphhanger` conservando `case` y las funciones que se usen.
 
 ## Cómo declararla (`css/styles.css`)
 
 ```css
 @font-face {
-  font-family: "Inter";
-  src: url("../assets/fonts/InterVariable-subset.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Mona Sans";
+  src: url("../assets/fonts/MonaSansVF[opsz,wght].woff2") format("woff2");
+  font-weight: 200 900;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Inter";
-  src: url("../assets/fonts/InterVariable-Italic-subset.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Mona Sans";
+  src: url("../assets/fonts/MonaSansVF-Italic[opsz,wght].woff2") format("woff2");
+  font-weight: 200 900;
   font-style: italic;
   font-display: swap;
 }
 ```
 
-- Precargar solo el archivo normal en el HTML: `<link rel="preload" as="font" type="font/woff2" href="assets/fonts/InterVariable-subset.woff2" crossorigin>` (el `crossorigin` es obligatorio aunque sea del mismo dominio).
+- Los corchetes y comas del nombre original dan problemas en URLs: al copiar los archivos a `assets/fonts/` conviene renombrarlos (por ejemplo `MonaSans-Variable.woff2` y `MonaSans-Italic-Variable.woff2`).
+- Con el archivo `wdth` añadir `font-stretch: 75% 125%;` en el `@font-face` para poder usar `font-stretch` desde CSS.
+- Precargar solo el archivo normal: `<link rel="preload" as="font" type="font/woff2" href="assets/fonts/MonaSans-Variable.woff2" crossorigin>` (el `crossorigin` es obligatorio aunque sea del mismo dominio).
 - Activar `font-feature-settings: "case"` en los textos en mayúsculas.
-- Los archivos irán a `assets/fonts/` junto con la licencia OFL (`OFL.txt`), porque el repo es público.
+- Los archivos irán a `assets/fonts/` junto con `OFL.txt`, porque el repo es público.
 
 ## Puntos a vigilar
 
-- **Figma y el navegador pueden diferir en titulares grandes.** No está confirmado qué versión de Inter usa Figma; si no incluye `opsz`, el navegador dibujará los titulares algo más cerrados que en las maquetas. Comprobarlo con el primer texto real.
-- **Tildes en mayúsculas:** con interlineado del 95 % quedan justas. No bajar de ese valor.
-- **Presupuesto de fuentes:** ~100 KB (solo normal) o ~205 KB con cursiva. Cargar la cursiva solo si el diseño la usa.
+- **Figma y el navegador pueden diferir en titulares grandes**, sobre todo por `opsz`. No está confirmado qué versión de la fuente usa Figma; comprobarlo con el primer texto real.
+- **Rango de `opsz` 0-100** según el archivo: revisar el efecto real en el navegador antes de fijar `font-optical-sizing`.
+- **Peso mínimo 200:** no existe el peso 100 (Thin); el mínimo es ExtraLight.
+- **Mayúsculas con tildes:** con interlineado del 95 % quedan justas. No bajar de ese valor y verificarlo en el navegador.
+- **Presupuesto de fuentes:** 134 KB (solo normal), ~256 KB con cursiva, o el doble si se usa `wdth`. Cargar la cursiva y el ancho solo si el diseño los usa.
