@@ -27,7 +27,7 @@ Cómo se preparan y se colocan las fotos en la web.
 - Cada foto va en un `<figure class="photo photo--landscape|photo--portrait">`:
   - `photo--landscape`: todo el ancho de la pantalla.
   - `photo--portrait`: la mitad derecha, empezando en la columna 3 de la grid (que es el 50 % más medio gutter), hasta el borde derecho: `width: calc(50% - var(--gutter) / 2)`.
-- El alto sale de la proporción de la foto, nunca se recorta.
+- El marco sale de la proporción de la foto, nunca se deforma. Por el parallax, la foto va ampliada al 120 % dentro del marco y se ve en torno al 83 % de ella (ver abajo).
 - `width` y `height` en el `<img>` reservan el hueco antes de cargar, así que no hay saltos de layout.
 - `sizes`: `100vw` en horizontales y `calc(50vw - 5px)` en verticales.
 - La primera foto lleva `fetchpriority="high"`; el resto `loading="lazy"`.
