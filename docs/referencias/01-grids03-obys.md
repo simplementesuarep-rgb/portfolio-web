@@ -40,6 +40,29 @@ Da igual subir una foto vertical, un panorámico o un frame de vídeo: el hueco 
 | Tipografía | Letras enmascaradas una a una, títulos fijos, índice numerado con duraciones, estilo editorial. |
 | Separadores | Barras negras gruesas entre bloques, animadas. |
 
+## 2b. El "morph" del hover, en detalle (analizado en su código, 2026-09-30)
+
+Es un shader de WebGL (OGL) dibujado sobre cada foto. La foto real (`<img>`) se oculta y se pinta como textura en un plano que sigue su posición en la página.
+
+**Qué se ve**
+- Al pasar el ratón se abre en la foto una "ventana" con forma de mancha, y por ella se ve una hoja blanca con la retícula dibujada (celdas de unos 20 px, líneas de 1 px en `#e1e1e1`). La retícula se ajusta a cada foto para que todas las celdas salgan enteras.
+- La mancha sigue al ratón con inercia (el 17 % de la distancia en cada fotograma) y deja una estela de gotas detrás que se funden entre sí y se van cerrando.
+- El borde de la mancha nunca está quieto: un ruido que cambia con el tiempo lo hace ondular (unos 44 px de desplazamiento, en lóbulos de unos 105 px).
+- Cada gota además manda una onda, como al tocar agua: la foto se dobla hacia fuera alrededor de cada toque y la onda se apaga en torno a 1 s. La retícula no se deforma, solo la foto.
+
+**Cómo funciona**
+- **Metaballs:** cada gota suma `r² / d²` a un campo y la ventana es donde el campo pasa de 1. Por eso las gotas cercanas se funden en una sola forma (ese es el morph). El corte es casi duro (`smoothstep` de ±0,035), así que se lee como un recorte y no como un fundido.
+- **16 gotas como máximo:** la primera es la que está bajo el ratón (62 % del tamaño y fija mientras el ratón esté ahí). Las otras 15 son la estela: se suelta una cada 10 px de movimiento, de 96 px de radio, que crece en 0,22 s y se encoge en 1,5 s.
+- **Onda:** avanza a 300 px/s, con una longitud de 105 px y un ancho de 75 px, y dobla la foto hasta 26 px.
+- **Entrada y salida del hover:** un valor de 0 a 1 que sube en 0,3 s y baja en 0,55 s.
+- **Rendimiento:** sin hover, el shader solo lee la foto (una lectura por píxel). Todo el cálculo de gotas y ruido solo corre en la foto que está bajo el ratón, y los planos que están fuera de pantalla no se dibujan.
+
+**Qué supone traerlo aquí**
+- Es un efecto de hover de fotos, no de texto: el efecto de tinta de los textos (desenfoque y umbral en SVG) se puede quedar como está.
+- Hace falta WebGL: una librería pequeña (OGL, unos 30 KB por CDN) o WebGL a pelo dentro de `script.js`. Sin WebGL, o en táctil, las fotos se quedan como están.
+- La retícula de fondo es la idea visual de Obys; lo nuestro sería enseñar otra cosa por la ventana (blanco, nuestra grid de 4 columnas, otra foto…).
+- La foto se tiene que pintar en el canvas, así que el parallax dentro del marco se hace en el shader (desplazando la textura), no con `transform` en el `<img>`.
+
 ## 3. Stack técnico
 
 - Vite, GSAP + ScrollTrigger, Lenis, OGL. Sin frameworks ni Three.js.
