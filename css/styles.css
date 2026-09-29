@@ -222,6 +222,35 @@ html.lenis body {
   overflow: hidden;
 }
 
+/* Carga: el nombre se forma con tinta y la capa sube (script.js).
+   Si el JS no llega en 4 s, la capa se oculta sola. */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--color-bg);
+  animation: loader-fallback 0s 4s forwards;
+}
+
+.ink-ready .loader {
+  animation: none;
+}
+
+.loader__name {
+  font-size: var(--fs-display);
+  line-height: var(--lh);
+  text-transform: uppercase;
+  font-feature-settings: "case";
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+@keyframes loader-fallback {
+  to { visibility: hidden; }
+}
+
 /* Hero */
 .hero {
   min-height: 100dvh;

@@ -232,7 +232,59 @@ function initFooter() {
 
 
 /* ==========================================================================
-   6. Arranque
+   6. Carga: el nombre se forma con tinta (solo la primera vez por sesión)
+   ========================================================================== */
+
+const LOADER_KEY = "loader-seen";
+
+function loaderSeen() {
+  try {
+    return sessionStorage.getItem(LOADER_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markLoaderSeen() {
+  try {
+    sessionStorage.setItem(LOADER_KEY, "1");
+  } catch {
+    // Sin almacenamiento la carga se repite en cada página; no pasa nada
+  }
+}
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function pageLoaded() {
+  if (document.readyState === "complete") return Promise.resolve();
+  return new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
+}
+
+async function runLoader() {
+  const loader = document.querySelector(".loader");
+  if (!loader) return;
+
+  if (reducedMotion || loaderSeen()) {
+    loader.remove();
+    return;
+  }
+
+  markLoaderSeen();
+  lenis?.stop();
+
+  // Espera a que cargue la página, pero nunca más de 4 s
+  await Promise.race([pageLoaded(), wait(4000)]);
+
+  await ink(loader.querySelector(".loader__name"), { duration: 1.4 });
+  await gsap.to(loader, { clipPath: "inset(0 0 100% 0)", duration: 0.8, ease: "power4.inOut", delay: 0.3 });
+
+  loader.remove();
+  lenis?.start();
+}
+
+
+/* ==========================================================================
+   7. Arranque
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -246,5 +298,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initFooter();
   initInkHover();
   initScrollInk();
+
+  await runLoader();
   revealIntro();
 });
