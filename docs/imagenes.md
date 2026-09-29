@@ -34,3 +34,10 @@ Cómo se preparan y se colocan las fotos en la web.
 - Separación vertical entre fotos: `--image-gap` (0 px) en `css/styles.css`.
 - Solo el footer queda fuera de las fotos: la galería termina con `padding-bottom: var(--footer-height) + var(--margin)`, así que al llegar al final el footer está a 20 px de la última foto y sobre fondo blanco.
 - Navbar y footer se superponen a las fotos con `mix-blend-mode: difference`.
+
+## Efecto tinta en las fotos
+
+- **Carga:** cada `<img data-ink-image>` aparece cuando entra en pantalla (`top 90%`) y ya se ha descargado. Un ruido orgánico (`feTurbulence`) recorta la foto en manchas y, al subir el umbral (`feColorMatrix` sobre el alfa), estas crecen y se funden hasta dejar ver la foto entera (1,6 s).
+- **Hover:** al pasar el ratón se abren huecos en manchas y la foto se vuelve a cerrar (0,9 s). Cada pasada usa un ruido distinto.
+- **Etiqueta del cursor:** sobre los elementos con `data-cursor="View"` aparece una píldora negra que sigue al ratón con inercia (0,1 por fotograma, como en Almira Kho). Entra y sale con el efecto de tinta. Solo con ratón, no en táctil.
+- Si el JS falla, las fotos se muestran igual a los 4 s. Con `prefers-reduced-motion` aparecen sin animación.

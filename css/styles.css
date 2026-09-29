@@ -228,17 +228,38 @@ html.lenis body {
 
 /* Tinta: los elementos arrancan ocultos hasta que script.js los revela.
    Si el JS no llega en 4 s, la animación los muestra igualmente. */
-[data-ink] {
+[data-ink],
+[data-ink-image] {
   visibility: hidden;
   animation: ink-fallback 0s 4s forwards;
 }
 
-.ink-ready [data-ink] {
+.ink-ready [data-ink],
+.ink-ready [data-ink-image] {
   animation: none;
 }
 
 @keyframes ink-fallback {
   to { visibility: visible; }
+}
+
+/* Etiqueta que sigue al ratón sobre los elementos con data-cursor (script.js) */
+.cursor-tag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  line-height: var(--lh);
+  text-transform: uppercase;
+  font-feature-settings: "case";
+  white-space: nowrap;
+  color: var(--color-bg);
+  background: var(--color-text);
+  pointer-events: none;
+  visibility: hidden;
 }
 
 /* Contenedor de los filtros SVG que crea script.js */

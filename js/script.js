@@ -41,15 +41,20 @@ const INK_CUT = -4;
 let inkDefs = null;
 let inkCount = 0;
 
+// Contenedor oculto donde viven los filtros SVG; se crea la primera vez que hace falta
+function ensureInkDefs() {
+  if (inkDefs) return;
+
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("ink-defs");
+  inkDefs = document.createElementNS(SVG_NS, "defs");
+  svg.append(inkDefs);
+  document.body.append(svg);
+}
+
 function createInkFilter() {
-  if (!inkDefs) {
-    const svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("aria-hidden", "true");
-    svg.classList.add("ink-defs");
-    inkDefs = document.createElementNS(SVG_NS, "defs");
-    svg.append(inkDefs);
-    document.body.append(svg);
-  }
+  ensureInkDefs();
 
   const id = `ink-${++inkCount}`;
   const filter = document.createElementNS(SVG_NS, "filter");
@@ -152,6 +157,95 @@ function inkOut(el, { duration = 0.8 } = {}) {
     });
 }
 
+// Filtro de tinta para imágenes: un ruido orgánico recorta la foto en manchas.
+// Al subir el umbral las manchas crecen y se funden hasta mostrar la foto entera.
+const NOISE_SLOPE = 30;
+const NOISE_START = -28; // ningún píxel de ruido supera el umbral
+const NOISE_END = 0.5;   // todos lo superan
+
+function createNoiseFilter() {
+  ensureInkDefs();
+
+  const id = `ink-${++inkCount}`;
+  const filter = document.createElementNS(SVG_NS, "filter");
+  filter.id = id;
+  filter.setAttribute("x", "0");
+  filter.setAttribute("y", "0");
+  filter.setAttribute("width", "1");
+  filter.setAttribute("height", "1");
+  filter.setAttribute("color-interpolation-filters", "sRGB");
+
+  const noise = document.createElementNS(SVG_NS, "feTurbulence");
+  noise.setAttribute("type", "fractalNoise");
+  noise.setAttribute("baseFrequency", "0.005");
+  noise.setAttribute("numOctaves", "2");
+  noise.setAttribute("seed", Math.floor(Math.random() * 1000));
+  noise.setAttribute("result", "noise");
+
+  const threshold = document.createElementNS(SVG_NS, "feColorMatrix");
+  threshold.setAttribute("in", "noise");
+  threshold.setAttribute("type", "matrix");
+  threshold.setAttribute("result", "mask");
+
+  const clip = document.createElementNS(SVG_NS, "feComposite");
+  clip.setAttribute("in", "SourceGraphic");
+  clip.setAttribute("in2", "mask");
+  clip.setAttribute("operator", "in");
+
+  filter.append(noise, threshold, clip);
+  inkDefs.append(filter);
+
+  const render = (cut) => {
+    threshold.setAttribute("values", `0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${NOISE_SLOPE} 0 0 0 ${cut}`);
+  };
+
+  return { id, render, remove: () => filter.remove() };
+}
+
+// Revela una imagen: aparece en manchas de tinta que crecen y se unen
+function inkImage(el, { duration = 1.6, delay = 0 } = {}) {
+  const timeline = gsap.timeline({ delay });
+
+  if (reducedMotion) return timeline.set(el, { autoAlpha: 1 });
+
+  const filter = createNoiseFilter();
+  const state = { cut: NOISE_START };
+  const render = () => filter.render(state.cut);
+
+  return timeline
+    .call(render)
+    .set(el, { autoAlpha: 1, filter: `url(#${filter.id})` })
+    .to(state, { cut: NOISE_END, duration, ease: "power1.inOut", onUpdate: render })
+    .eventCallback("onComplete", () => {
+      el.style.filter = "";
+      filter.remove();
+    });
+}
+
+// Pasada de tinta sobre una imagen ya visible (hover): se abren huecos en
+// manchas y la foto se vuelve a cerrar
+const NOISE_HOVER = -11; // umbral en el punto más abierto de la pasada
+
+function inkImagePulse(el, { duration = 0.9 } = {}) {
+  if (reducedMotion || el.style.filter || el.inkPulse?.isActive()) return;
+
+  const filter = createNoiseFilter();
+  const state = { cut: NOISE_END };
+  const render = () => filter.render(state.cut);
+
+  render();
+  el.style.filter = `url(#${filter.id})`;
+
+  el.inkPulse = gsap.timeline({
+    onComplete: () => {
+      el.style.filter = "";
+      filter.remove();
+    },
+  })
+    .to(state, { cut: NOISE_HOVER, duration: duration * 0.4, ease: "power2.out", onUpdate: render })
+    .to(state, { cut: NOISE_END, duration: duration * 0.6, ease: "power2.inOut", onUpdate: render });
+}
+
 // Entrada de los textos que ya están en pantalla al cargar
 function revealIntro() {
   const items = document.querySelectorAll('[data-ink]:not([data-ink="scroll"])');
@@ -174,6 +268,27 @@ function initScrollInk() {
         onEnter: () => ink(line, { delay: i * 0.08 }),
       });
     });
+  });
+}
+
+// Imágenes con data-ink-image: aparecen con tinta cuando entran en pantalla y
+// ya se han descargado (con carga diferida pueden tardar en llegar)
+function initImageInk() {
+  document.querySelectorAll("[data-ink-image]").forEach((img) => {
+    const loaded = new Promise((resolve) => {
+      if (img.complete && img.naturalWidth) return resolve();
+      img.addEventListener("load", resolve, { once: true });
+      img.addEventListener("error", resolve, { once: true });
+    });
+
+    ScrollTrigger.create({
+      trigger: img,
+      start: "top 90%",
+      once: true,
+      onEnter: () => loaded.then(() => inkImage(img)),
+    });
+
+    img.addEventListener("mouseenter", () => inkImagePulse(img));
   });
 }
 
@@ -281,7 +396,88 @@ function initFooter() {
 
 
 /* ==========================================================================
-   6. Carga: el nombre se abre mientras un contador va de 0 a 100 y baja al
+   6. Etiqueta del cursor
+   Sobre los elementos con data-cursor="Texto" aparece una píldora que sigue
+   al ratón con inercia. Entra y sale con el efecto de tinta. Solo con ratón.
+   ========================================================================== */
+
+const CURSOR_INERTIA = 0.1; // fracción de la distancia que recorre por fotograma a 60 fps
+
+function initCursorTag() {
+  const tag = document.querySelector(".cursor-tag");
+  if (!tag || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
+  const target = { x: 0, y: 0 };
+  const pos = { x: 0, y: 0 };
+  let moved = false;
+  let shown = false;
+  let animation = null;
+
+  gsap.set(tag, { xPercent: -50, yPercent: -50 });
+
+  const place = () => gsap.set(tag, { x: pos.x, y: pos.y });
+
+  const show = (text) => {
+    tag.textContent = text;
+    if (shown) return;
+
+    shown = true;
+    pos.x = target.x;
+    pos.y = target.y;
+    place();
+
+    animation?.progress(1).kill();
+    animation = ink(tag, { duration: 0.6 });
+  };
+
+  const hide = () => {
+    if (!shown) return;
+
+    shown = false;
+    animation?.progress(1).kill();
+    animation = inkOut(tag, { duration: 0.5 });
+  };
+
+  // Muestra u oculta la etiqueta según lo que haya bajo el puntero
+  const check = () => {
+    const owner = document.elementFromPoint(target.x, target.y)?.closest("[data-cursor]");
+    if (owner) show(owner.dataset.cursor);
+    else hide();
+  };
+
+  window.addEventListener("pointermove", (event) => {
+    target.x = event.clientX;
+    target.y = event.clientY;
+    moved = true;
+  }, { passive: true });
+
+  document.addEventListener("pointerover", (event) => {
+    const owner = event.target.closest?.("[data-cursor]");
+    if (owner) show(owner.dataset.cursor);
+    else hide();
+  });
+
+  document.documentElement.addEventListener("pointerleave", hide);
+
+  // Al hacer scroll con el ratón quieto cambia lo que hay debajo
+  const onScroll = () => moved && check();
+  if (lenis) lenis.on("scroll", onScroll);
+  else window.addEventListener("scroll", onScroll, { passive: true });
+
+  gsap.ticker.add(() => {
+    if (!shown) return;
+
+    // Independiente de la tasa de fotogramas: equivale a 0,1 por fotograma a 60 fps
+    const ease = 1 - Math.pow(1 - CURSOR_INERTIA, gsap.ticker.deltaRatio());
+    pos.x += (target.x - pos.x) * ease;
+    pos.y += (target.y - pos.y) * ease;
+    place();
+  });
+}
+
+
+/* ==========================================================================
+   7. Carga: el nombre se abre mientras un contador va de 0 a 100 y baja al
    footer (solo la primera vez por sesión)
    ========================================================================== */
 
@@ -399,7 +595,7 @@ async function runLoader() {
 
 
 /* ==========================================================================
-   7. Arranque
+   8. Arranque
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -413,7 +609,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initFooter();
   initInkHover();
   initScrollInk();
+  initCursorTag();
 
   await runLoader();
+  initImageInk();
   revealIntro();
 });
