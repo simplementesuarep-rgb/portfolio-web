@@ -239,15 +239,15 @@ html.lenis body {
   overflow: hidden;
 }
 
-/* Carga: pantalla negra en la que el nombre se condensa en blanco (script.js).
+/* Carga: el nombre entra junto en el centro, se abre mientras el contador
+   ocupa el hueco y al terminar baja a la posición del footer (script.js).
    Si el JS no llega en 4 s, la capa se oculta sola. */
 .loader {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
   background: var(--color-text);
+  color: var(--color-bg);
   animation: loader-fallback 0s 4s forwards;
 }
 
@@ -255,13 +255,38 @@ html.lenis body {
   animation: none;
 }
 
-.loader__name {
-  font-size: var(--fs-display);
+.loader__stage {
+  position: absolute;
+  inset: 50% var(--margin) auto;
+  display: grid;
+  align-items: baseline;
+  transform: translateY(-50%);
+}
+
+.loader__name,
+.loader__count {
+  grid-area: 1 / 1;
+  justify-self: center;
   line-height: var(--lh);
-  color: var(--color-bg);
   text-transform: uppercase;
   font-feature-settings: "case";
   white-space: nowrap;
+}
+
+.loader__name {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: var(--fs-display);
+}
+
+.loader__count {
+  font-size: var(--fs-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.loader__word,
+.loader__count {
   visibility: hidden;
 }
 

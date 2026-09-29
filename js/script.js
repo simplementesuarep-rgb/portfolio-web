@@ -128,6 +128,30 @@ function inkPulse(el, { blur, duration = 0.5 } = {}) {
     .to(state, { blur: 0, duration: duration / 2, ease: "power2.in", onUpdate: render });
 }
 
+// Disolución: el texto se funde en manchas y desaparece (inversa de ink)
+function inkOut(el, { duration = 0.8 } = {}) {
+  const timeline = gsap.timeline();
+
+  if (reducedMotion) return timeline.set(el, { autoAlpha: 0 });
+
+  const filter = createInkFilter();
+  const size = parseFloat(getComputedStyle(el).fontSize) || 16;
+  const state = { blur: 0, a: 1, b: 0 };
+  const render = () => filter.render(state);
+
+  render();
+  el.style.filter = `url(#${filter.id})`;
+
+  return timeline
+    .to(state, { a: INK_AMPLITUDE, b: INK_CUT, duration: duration * 0.3, ease: "power1.out", onUpdate: render })
+    .to(state, { blur: size * 0.6, duration: duration * 0.8, ease: "power2.in", onUpdate: render }, duration * 0.1)
+    .set(el, { autoAlpha: 0 }, duration * 0.9)
+    .call(() => {
+      el.style.filter = "";
+      filter.remove();
+    });
+}
+
 // Entrada de los textos que ya están en pantalla al cargar
 function revealIntro() {
   const items = document.querySelectorAll('[data-ink]:not([data-ink="scroll"])');
@@ -244,7 +268,8 @@ function initFooter() {
 
 
 /* ==========================================================================
-   6. Carga: el nombre se condensa en blanco sobre negro (solo la primera vez por sesión)
+   6. Carga: el nombre se abre mientras un contador va de 0 a 100 y baja al
+   footer (solo la primera vez por sesión)
    ========================================================================== */
 
 const LOADER_KEY = "loader-seen";
@@ -284,15 +309,82 @@ async function runLoader() {
   markLoaderSeen();
   lenis?.stop();
 
-  // Espera a que cargue la página, pero nunca más de 4 s
-  await Promise.race([pageLoaded(), wait(4000)]);
+  const name = loader.querySelector(".loader__name");
+  const words = [...loader.querySelectorAll(".loader__word")];
+  const count = loader.querySelector(".loader__count");
+  const stage = loader.querySelector(".loader__stage");
 
-  // El nombre se condensa en blanco sobre el negro y, ya formado, la capa sube
-  await ink(loader.querySelector(".loader__name"), { duration: 1.8 });
-  await gsap.to(loader, { clipPath: "inset(0 0 100% 0)", duration: 0.8, ease: "power4.inOut", delay: 0.5 });
+  // El nombre arranca junto y centrado; se abre hasta ocupar todo el ancho
+  const joined = words.reduce((sum, word) => sum + word.offsetWidth, 0);
+  const open = stage.clientWidth;
+  gsap.set(name, { width: joined });
+
+  // El nombre entra junto, con tinta
+  await Promise.all(words.map((word) => ink(word, { duration: 0.9 })));
+
+  // Contador: cada cambio de cifra hace una pasada corta de tinta
+  const countFilter = createInkFilter();
+  const size = parseFloat(getComputedStyle(count).fontSize);
+  const morph = { blur: 0, a: 1, b: 0 };
+  const renderMorph = () => countFilter.render(morph);
+  const openEase = gsap.parseEase("power2.out");
+
+  const progress = { value: 0 };
+  let shown = 0;
+  let countState = "hidden"; // hidden -> revealing -> ready
+
+  const update = () => {
+    gsap.set(name, { width: gsap.utils.interpolate(joined, open, openEase(progress.value / 100)) });
+
+    // El contador entra cuando el nombre ya ha abierto hueco
+    if (countState === "hidden" && progress.value >= 6) {
+      countState = "revealing";
+      ink(count, { duration: 0.6 }).then(() => {
+        renderMorph();
+        count.style.filter = `url(#${countFilter.id})`;
+        countState = "ready";
+      });
+    }
+
+    const next = Math.round(progress.value);
+    if (next === shown) return;
+
+    shown = next;
+    count.textContent = next;
+
+    if (countState !== "ready") return;
+    gsap.fromTo(morph,
+      { blur: size * 0.12, a: INK_AMPLITUDE, b: INK_CUT },
+      { blur: 0, a: 1, b: 0, duration: 0.3, ease: "power2.out", overwrite: true, onUpdate: renderMorph });
+  };
+
+  // Hasta el 90 % sigue un ritmo fijo; el resto espera a que cargue la página (máx. 4 s)
+  await gsap.to(progress, { value: 90, duration: 2.2, ease: "power1.inOut", onUpdate: update });
+  await Promise.race([pageLoaded(), wait(4000)]);
+  await gsap.to(progress, { value: 100, duration: 0.5, ease: "power1.out", onUpdate: update });
+
+  await wait(250);
+
+  // Al volver el scroll aparece la barra y cambia el ancho útil: se mide ya con ella
+  lenis?.start();
+  gsap.set(name, { width: "100%" });
+
+  // El contador se disuelve y el nombre baja a la posición exacta del footer
+  const footerName = document.querySelector(".footer__name");
+  const dy = footerName.getBoundingClientRect().top - name.getBoundingClientRect().top;
+
+  countFilter.remove();
+  count.style.filter = "";
+
+  await Promise.all([
+    inkOut(count, { duration: 0.8 }),
+    gsap.to(name, { y: dy, duration: 1, ease: "power3.inOut", delay: 0.1 }),
+  ]);
+
+  // Ya colocado, la capa sube y aparece la web
+  await gsap.to(loader, { clipPath: "inset(0 0 100% 0)", duration: 0.8, ease: "power4.inOut", delay: 0.2 });
 
   loader.remove();
-  lenis?.start();
 }
 
 
