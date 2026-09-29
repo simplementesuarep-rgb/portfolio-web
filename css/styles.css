@@ -246,8 +246,8 @@ html.lenis body {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--color-text);
-  color: var(--color-bg);
+  background: var(--color-bg);
+  color: var(--color-text);
   animation: loader-fallback 0s 4s forwards;
 }
 
