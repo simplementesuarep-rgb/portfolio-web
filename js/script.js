@@ -25,11 +25,28 @@ function initLenis() {
 
 
 /* ==========================================================================
-   3. Arranque
+   3. Navbar
+   ========================================================================== */
+
+// De momento solo cambia de estado; el audio llegará con los vídeos
+function initSoundToggle() {
+  const button = document.querySelector(".nav__link--sound");
+  if (!button) return;
+
+  button.addEventListener("click", () => {
+    const isOn = button.getAttribute("aria-pressed") === "true";
+    button.setAttribute("aria-pressed", String(!isOn));
+  });
+}
+
+
+/* ==========================================================================
+   4. Arranque
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
   initLenis();
+  initSoundToggle();
 
   // Los textos se parten y se miden con la fuente final ya cargada
   await document.fonts.ready;

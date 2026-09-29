@@ -118,6 +118,45 @@ html.lenis body {
    5. Componentes
    ========================================================================== */
 
+/* Navbar (texto en blanco que se invierte con lo que tiene detrás) */
+.nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  align-items: start;
+  padding-top: var(--margin);
+  color: var(--color-ink);
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+.nav__link {
+  /* Amplía el área de clic sin mover el diseño */
+  padding: 14px;
+  margin: -14px;
+  font-size: var(--fs-small);
+  line-height: var(--lh);
+  text-transform: uppercase;
+  font-feature-settings: "case";
+  pointer-events: auto;
+}
+
+.nav__link--contact {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.nav__link--works {
+  grid-column: 2;
+  justify-self: start;
+  font-size: var(--fs-medium);
+}
+
+.nav__link--sound {
+  grid-column: 4;
+  justify-self: end;
+}
+
 /* Hero */
 .hero {
   min-height: 100dvh;
