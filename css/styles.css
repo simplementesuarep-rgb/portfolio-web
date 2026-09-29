@@ -20,7 +20,7 @@
   --cols: 4;
   --margin: 20px;
   --gutter: 10px;
-  --image-gap: 10px; /* separación vertical entre fotos */
+  --image-gap: 0px; /* separación vertical entre fotos */
 
   /* Tipografía */
   --font: "Mona Sans", system-ui, sans-serif;
@@ -301,21 +301,22 @@ html.lenis body {
   to { visibility: hidden; }
 }
 
-/* Galería: cada foto mantiene su proporción (width/height en el HTML).
-   Horizontales a ancho completo (4 columnas), verticales en las 2 de la
-   derecha; el borde derecho es común a todas. */
+/* Galería: las fotos van a sangre y pegadas entre sí (los 20 px de margen son
+   solo para el texto). Cada una mantiene su proporción (width/height en el HTML).
+   Horizontales a todo el ancho; verticales en las 2 columnas de la derecha: su
+   borde izquierdo cae en el inicio de la columna 3, que es 50 % + medio gutter. */
 .gallery {
-  /* Aire para la navbar arriba y el footer abajo */
-  padding-block: 80px 120px;
+  display: grid;
   row-gap: var(--image-gap);
 }
 
 .photo {
-  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .photo--portrait {
-  grid-column: 3 / -1;
+  justify-self: end;
+  width: calc(50% - var(--gutter) / 2);
 }
 
 .photo img {

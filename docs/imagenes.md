@@ -22,12 +22,14 @@ Cómo se preparan y se colocan las fotos en la web.
 
 ## Maquetación
 
-- La galería está en `index.html` dentro de `<section class="gallery grid">`.
+- La galería está en `index.html` dentro de `<section class="gallery">`.
+- **Las fotos van a sangre y pegadas entre sí**, sin margen ni separación. Los 20 px de margen y los 10 px de gutter solo valen para el texto.
 - Cada foto va en un `<figure class="photo photo--landscape|photo--portrait">`:
-  - `photo--landscape`: las 4 columnas (`grid-column: 1 / -1`).
-  - `photo--portrait`: las 2 columnas de la derecha (`grid-column: 3 / -1`).
-- Todas terminan en el margen derecho (20 px). El alto sale de la proporción de la foto, nunca se recorta.
+  - `photo--landscape`: todo el ancho de la pantalla.
+  - `photo--portrait`: la mitad derecha, empezando en la columna 3 de la grid (que es el 50 % más medio gutter), hasta el borde derecho: `width: calc(50% - var(--gutter) / 2)`.
+- El alto sale de la proporción de la foto, nunca se recorta.
 - `width` y `height` en el `<img>` reservan el hueco antes de cargar, así que no hay saltos de layout.
-- `sizes`: `calc(100vw - 40px)` en horizontales y `calc(50vw - 25px)` en verticales.
+- `sizes`: `100vw` en horizontales y `calc(50vw - 5px)` en verticales.
 - La primera foto lleva `fetchpriority="high"`; el resto `loading="lazy"`.
-- Separación vertical entre fotos: `--image-gap` (10 px) en `css/styles.css`.
+- Separación vertical entre fotos: `--image-gap` (0 px) en `css/styles.css`.
+- Navbar y footer se superponen a las fotos con `mix-blend-mode: difference`.
