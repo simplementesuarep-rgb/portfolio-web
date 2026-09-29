@@ -230,9 +230,16 @@ function initFooter() {
   // Las dos palabras pegadas: SIMPLEMENTESUAREP
   const joinedWidth = () => words.reduce((sum, word) => sum + word.offsetWidth, 0);
 
-  const timeline = gsap.timeline({ paused: true, defaults: { duration: 0.9, ease: "power3.inOut" } })
-    .fromTo(name, { width: fullWidth }, { width: joinedWidth })
-    .fromTo(name, { opacity: idleOpacity }, { opacity: 1 }, 0);
+  // Progreso 0 (separado) a 1 (junto). El ancho se calcula en cada fotograma para
+  // que un cambio de tamaño de ventana no deje valores antiguos.
+  const state = { progress: 0 };
+  const apply = () => {
+    name.style.width = `${gsap.utils.interpolate(fullWidth(), joinedWidth(), state.progress)}px`;
+    name.style.opacity = gsap.utils.interpolate(idleOpacity, 1, state.progress);
+  };
+
+  const timeline = gsap.timeline({ paused: true })
+    .to(state, { progress: 1, duration: 0.9, ease: "power3.inOut", onUpdate: apply });
 
   let joined = false;
   let linkReveals = [];
@@ -266,10 +273,9 @@ function initFooter() {
   if (lenis) lenis.on("scroll", update);
   else window.addEventListener("scroll", update, { passive: true });
 
-  window.addEventListener("resize", () => {
-    timeline.invalidate().progress(joined ? 1 : 0);
-  });
+  window.addEventListener("resize", apply);
 
+  apply();
   update();
 }
 
