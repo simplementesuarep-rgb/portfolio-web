@@ -239,13 +239,15 @@ html.lenis body {
   overflow: hidden;
 }
 
-/* Carga: una masa negra cubre la pantalla y se retira hasta dejar el
-   nombre (script.js). Si el JS no llega en 4 s, la capa se oculta sola. */
+/* Carga: pantalla negra en la que el nombre se condensa en blanco (script.js).
+   Si el JS no llega en 4 s, la capa se oculta sola. */
 .loader {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--color-bg);
+  display: grid;
+  place-items: center;
+  background: var(--color-text);
   animation: loader-fallback 0s 4s forwards;
 }
 
@@ -253,36 +255,14 @@ html.lenis body {
   animation: none;
 }
 
-/* Capa que recibe el filtro de tinta: fondo transparente para que el
-   umbral actúe sobre la masa y las letras */
-.loader__ink {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-}
-
-.loader__mass {
-  position: absolute;
-  inset: 0;
-  background: var(--color-text);
-  filter: url(#loader-erosion);
-}
-
-.loader__defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-}
-
 .loader__name {
-  position: relative;
   font-size: var(--fs-display);
   line-height: var(--lh);
-  color: var(--color-text);
+  color: var(--color-bg);
   text-transform: uppercase;
   font-feature-settings: "case";
   white-space: nowrap;
+  visibility: hidden;
 }
 
 @keyframes loader-fallback {

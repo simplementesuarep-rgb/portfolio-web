@@ -244,9 +244,7 @@ function initFooter() {
 
 
 /* ==========================================================================
-   6. Carga: una masa negra cubre la pantalla y el blanco la va comiendo
-   hasta dejar el nombre
-   (solo la primera vez por sesión)
+   6. Carga: el nombre se condensa en blanco sobre negro (solo la primera vez por sesión)
    ========================================================================== */
 
 const LOADER_KEY = "loader-seen";
@@ -289,36 +287,9 @@ async function runLoader() {
   // Espera a que cargue la página, pero nunca más de 4 s
   await Promise.race([pageLoaded(), wait(4000)]);
 
-  const layer = loader.querySelector(".loader__ink");
-  const mass = loader.querySelector(".loader__mass");
-  const threshold = loader.querySelector(".loader__threshold");
-  const size = parseFloat(getComputedStyle(loader.querySelector(".loader__name")).fontSize);
-
-  // Erosión: el corte baja y el blanco entra por las zonas de menos ruido
-  const erosion = { cut: -5 };
-  const renderErosion = () => {
-    threshold.setAttribute("values", `0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 30 ${erosion.cut}`);
-  };
-
-  // Tinta sobre masa y letras juntas: los bordes se funden con el nombre
-  const filter = createInkFilter();
-  const state = { blur: 0, a: INK_AMPLITUDE, b: INK_CUT };
-  const render = () => filter.render(state);
-
-  render();
-  layer.style.filter = `url(#${filter.id})`;
-
-  await gsap.timeline()
-    .to(erosion, { cut: -26, duration: 1.8, ease: "power2.in", onUpdate: renderErosion })
-    .to(state, { blur: size * 0.3, duration: 0.9, ease: "sine.inOut", onUpdate: render }, 0)
-    .to(state, { blur: 0, duration: 0.9, ease: "sine.inOut", onUpdate: render }, 0.9)
-    .to(state, { a: 1, b: 0, duration: 0.3, ease: "power1.in", onUpdate: render }, 1.8)
-    .call(() => {
-      mass.remove();
-      layer.style.filter = "";
-      filter.remove();
-    })
-    .to(loader, { clipPath: "inset(0 0 100% 0)", duration: 0.8, ease: "power4.inOut" }, "+=0.4");
+  // El nombre se condensa en blanco sobre el negro y, ya formado, la capa sube
+  await ink(loader.querySelector(".loader__name"), { duration: 1.8 });
+  await gsap.to(loader, { clipPath: "inset(0 0 100% 0)", duration: 0.8, ease: "power4.inOut", delay: 0.5 });
 
   loader.remove();
   lenis?.start();
