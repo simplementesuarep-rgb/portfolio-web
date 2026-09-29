@@ -20,6 +20,7 @@
   --cols: 4;
   --margin: 20px;
   --gutter: 10px;
+  --image-gap: 10px; /* separación vertical entre fotos */
 
   /* Tipografía */
   --font: "Mona Sans", system-ui, sans-serif;
@@ -300,14 +301,26 @@ html.lenis body {
   to { visibility: hidden; }
 }
 
-/* Hero */
-.hero {
-  min-height: 100dvh;
+/* Galería: cada foto mantiene su proporción (width/height en el HTML).
+   Horizontales a ancho completo (4 columnas), verticales en las 2 de la
+   derecha; el borde derecho es común a todas. */
+.gallery {
+  /* Aire para la navbar arriba y el footer abajo */
+  padding-block: 80px 120px;
+  row-gap: var(--image-gap);
 }
 
-/* TEMPORAL: altura de prueba */
-.spacer {
-  height: 150dvh;
+.photo {
+  grid-column: 1 / -1;
+}
+
+.photo--portrait {
+  grid-column: 3 / -1;
+}
+
+.photo img {
+  width: 100%;
+  height: auto;
 }
 
 
