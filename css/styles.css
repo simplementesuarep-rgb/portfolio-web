@@ -34,6 +34,9 @@
   --color-text: #000;
   --color-ink: #fff; /* se usa con mix-blend-mode: difference */
 
+  /* Alto del footer: línea del nombre + relleno inferior */
+  --footer-height: calc(var(--fs-display) * var(--lh) + 10px);
+
   /* Opacidad del nombre del footer antes de llegar al final */
   --footer-idle-opacity: 0.15;
 }
@@ -308,6 +311,8 @@ html.lenis body {
 .gallery {
   display: grid;
   row-gap: var(--image-gap);
+  /* Al final de la página el footer queda fuera de las fotos, a 20 px de la última */
+  padding-bottom: calc(var(--footer-height) + var(--margin));
 }
 
 .photo {

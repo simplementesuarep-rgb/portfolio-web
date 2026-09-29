@@ -32,4 +32,5 @@ Cómo se preparan y se colocan las fotos en la web.
 - `sizes`: `100vw` en horizontales y `calc(50vw - 5px)` en verticales.
 - La primera foto lleva `fetchpriority="high"`; el resto `loading="lazy"`.
 - Separación vertical entre fotos: `--image-gap` (0 px) en `css/styles.css`.
+- Solo el footer queda fuera de las fotos: la galería termina con `padding-bottom: var(--footer-height) + var(--margin)`, así que al llegar al final el footer está a 20 px de la última foto y sobre fondo blanco.
 - Navbar y footer se superponen a las fotos con `mix-blend-mode: difference`.
