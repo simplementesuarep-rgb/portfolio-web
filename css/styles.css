@@ -345,15 +345,24 @@ html.lenis body {
   width: calc(50% - var(--gutter) / 2);
 }
 
-/* Home: todas las fotos en las dos columnas centrales de la grid */
-.gallery--center {
-  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-  column-gap: var(--gutter);
-  padding-inline: var(--margin);
+/* Home 60/40: la foto horizontal queda fija a la izquierda (60 %) y la galería
+   ocupa el 40 % de la derecha. Ninguna foto se recorta. */
+.home {
+  --home-split: 60%;
 }
 
-.gallery--center .photo {
-  grid-column: 2 / span 2;
+.home__feature {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--home-split);
+}
+
+.gallery--side {
+  margin-left: var(--home-split);
+}
+
+.gallery--side .photo {
   justify-self: stretch;
   width: auto;
 }

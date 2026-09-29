@@ -34,27 +34,40 @@
     <button class="nav__link nav__link--sound" data-ink data-ink-hover type="button" aria-pressed="false">Sound</button>
   </header>
 
-  <main>
-    <!-- Home: fotos pegadas entre sí en las dos columnas centrales; el scroll es infinito -->
-    <section class="gallery gallery--center" aria-label="Selected work">
+  <main class="home">
+    <!-- Home 60/40: una foto horizontal fija a la izquierda y, a la derecha, las
+         verticales pegadas entre sí en scroll infinito -->
+    <figure class="home__feature photo" data-cursor="View">
+      <picture>
+        <source type="image/avif" sizes="60vw" srcset="assets/img/12-800.avif 800w,
+            assets/img/12-1600.avif 1600w,
+            assets/img/12-2400.avif 2400w">
+        <source type="image/webp" sizes="60vw" srcset="assets/img/12-800.webp 800w,
+            assets/img/12-1600.webp 1600w,
+            assets/img/12-2400.webp 2400w">
+        <img src="assets/img/12-1600.webp" width="3000" height="2000" alt="Person leaning out of a doorway, seen from below" fetchpriority="high" decoding="async">
+      </picture>
+    </figure>
+
+    <section class="gallery gallery--side" aria-label="Selected work">
       <figure class="photo photo--portrait" data-cursor="View">
         <picture>
-          <source type="image/avif" sizes="calc(50vw - 25px)" srcset="assets/img/3-640.avif 640w,
+          <source type="image/avif" sizes="40vw" srcset="assets/img/3-640.avif 640w,
               assets/img/3-1280.avif 1280w,
               assets/img/3-2000.avif 2000w">
-          <source type="image/webp" sizes="calc(50vw - 25px)" srcset="assets/img/3-640.webp 640w,
+          <source type="image/webp" sizes="40vw" srcset="assets/img/3-640.webp 640w,
               assets/img/3-1280.webp 1280w,
               assets/img/3-2000.webp 2000w">
-          <img src="assets/img/3-1280.webp" width="2000" height="3000" alt="Person in a fur hat in strong light, almost in silhouette" fetchpriority="high" decoding="async">
+          <img src="assets/img/3-1280.webp" width="2000" height="3000" alt="Person in a fur hat in strong light, almost in silhouette" decoding="async">
         </picture>
       </figure>
 
       <figure class="photo photo--portrait" data-cursor="View">
         <picture>
-          <source type="image/avif" sizes="calc(50vw - 25px)" srcset="assets/img/4-640.avif 640w,
+          <source type="image/avif" sizes="40vw" srcset="assets/img/4-640.avif 640w,
               assets/img/4-1280.avif 1280w,
               assets/img/4-2000.avif 2000w">
-          <source type="image/webp" sizes="calc(50vw - 25px)" srcset="assets/img/4-640.webp 640w,
+          <source type="image/webp" sizes="40vw" srcset="assets/img/4-640.webp 640w,
               assets/img/4-1280.webp 1280w,
               assets/img/4-2000.webp 2000w">
           <img src="assets/img/4-1280.webp" width="2000" height="3000" alt="Person wrapped in patched denim fabric, hiding half of their face" loading="lazy" decoding="async">

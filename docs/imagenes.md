@@ -27,7 +27,7 @@ Cómo se preparan y se colocan las fotos en la web.
 - Cada foto va en un `<figure class="photo photo--landscape|photo--portrait">`. En las páginas de proyecto:
   - `photo--landscape`: todo el ancho de la pantalla, a sangre.
   - `photo--portrait`: las 2 columnas de la derecha (`width: calc(50% - var(--gutter) / 2)`), hasta el borde derecho.
-- **Home (`gallery--center`):** de momento solo las dos verticales (3 y 4), en las dos columnas centrales de la grid (`grid-column: 2 / span 2`, 695 px a 1440). `sizes="calc(50vw - 25px)"`.
+- **Home 60/40:** la horizontal 12 va fija arriba a la izquierda (`.home__feature`, 60 % del ancho, 864×576 a 1440, `sizes="60vw"`) y no se mueve. A la derecha, `gallery--side` ocupa el 40 % con las dos verticales (3 y 4) pegadas y en scroll infinito (`sizes="40vw"`). El reparto se cambia con `--home-split` en `.home`. Ninguna foto se recorta; bajo la horizontal queda blanco.
 - El marco sale de la proporción de la foto, nunca se deforma. Por el parallax, la foto va ampliada al 120 % dentro del marco y se ve en torno al 83 % de ella (ver abajo).
 - `width` y `height` en el `<img>` reservan el hueco antes de cargar, así que no hay saltos de layout.
 - `sizes` en proyectos: `100vw` en horizontales y `calc(50vw - 5px)` en verticales.
