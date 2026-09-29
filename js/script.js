@@ -219,11 +219,19 @@ function initFooter() {
   const links = [...document.querySelectorAll(".footer__link")];
   const idleOpacity = parseFloat(getComputedStyle(name).opacity);
 
+  // Ancho útil del footer (sin sus márgenes). Se da en píxeles: con "100%" GSAP
+  // cuenta el padding y el nombre se sale 20 px por la derecha al empezar.
+  const fullWidth = () => {
+    const footer = name.parentElement;
+    const { paddingLeft, paddingRight } = getComputedStyle(footer);
+    return footer.clientWidth - parseFloat(paddingLeft) - parseFloat(paddingRight);
+  };
+
   // Las dos palabras pegadas: SIMPLEMENTESUAREP
   const joinedWidth = () => words.reduce((sum, word) => sum + word.offsetWidth, 0);
 
   const timeline = gsap.timeline({ paused: true, defaults: { duration: 0.9, ease: "power3.inOut" } })
-    .fromTo(name, { width: "100%" }, { width: joinedWidth })
+    .fromTo(name, { width: fullWidth }, { width: joinedWidth })
     .fromTo(name, { opacity: idleOpacity }, { opacity: 1 }, 0);
 
   let joined = false;
@@ -259,8 +267,7 @@ function initFooter() {
   else window.addEventListener("scroll", update, { passive: true });
 
   window.addEventListener("resize", () => {
-    timeline.invalidate();
-    if (joined) timeline.progress(1);
+    timeline.invalidate().progress(joined ? 1 : 0);
   });
 
   update();
