@@ -228,14 +228,12 @@ html.lenis body {
 
 /* Tinta: los elementos arrancan ocultos hasta que script.js los revela.
    Si el JS no llega en 4 s, la animación los muestra igualmente. */
-[data-ink],
-[data-ink-image] {
+[data-ink] {
   visibility: hidden;
   animation: ink-fallback 0s 4s forwards;
 }
 
-.ink-ready [data-ink],
-.ink-ready [data-ink-image] {
+.ink-ready [data-ink] {
   animation: none;
 }
 
@@ -336,8 +334,11 @@ html.lenis body {
   padding-bottom: calc(var(--footer-height) + var(--margin));
 }
 
+/* El marco tiene la proporción de la foto; dentro, la foto va ampliada y se
+   mueve con el scroll (parallax en script.js) */
 .photo {
   width: 100%;
+  overflow: hidden;
 }
 
 .photo--portrait {

@@ -16,7 +16,13 @@ let lenis = null;
 function initLenis() {
   if (reducedMotion) return;
 
-  lenis = new Lenis({ autoRaf: false });
+  // Misma sensación que Almira Kho: rueda al 80 % y frenada exponencial de 1,2 s
+  lenis = new Lenis({
+    autoRaf: false,
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
+    wheelMultiplier: 0.8,
+  });
   lenis.on("scroll", ScrollTrigger.update);
 
   gsap.ticker.add((time) => lenis.raf(time * 1000));
@@ -157,95 +163,6 @@ function inkOut(el, { duration = 0.8 } = {}) {
     });
 }
 
-// Filtro de tinta para imágenes: un ruido orgánico recorta la foto en manchas.
-// Al subir el umbral las manchas crecen y se funden hasta mostrar la foto entera.
-const NOISE_SLOPE = 30;
-const NOISE_START = -28; // ningún píxel de ruido supera el umbral
-const NOISE_END = 0.5;   // todos lo superan
-
-function createNoiseFilter() {
-  ensureInkDefs();
-
-  const id = `ink-${++inkCount}`;
-  const filter = document.createElementNS(SVG_NS, "filter");
-  filter.id = id;
-  filter.setAttribute("x", "0");
-  filter.setAttribute("y", "0");
-  filter.setAttribute("width", "1");
-  filter.setAttribute("height", "1");
-  filter.setAttribute("color-interpolation-filters", "sRGB");
-
-  const noise = document.createElementNS(SVG_NS, "feTurbulence");
-  noise.setAttribute("type", "fractalNoise");
-  noise.setAttribute("baseFrequency", "0.005");
-  noise.setAttribute("numOctaves", "2");
-  noise.setAttribute("seed", Math.floor(Math.random() * 1000));
-  noise.setAttribute("result", "noise");
-
-  const threshold = document.createElementNS(SVG_NS, "feColorMatrix");
-  threshold.setAttribute("in", "noise");
-  threshold.setAttribute("type", "matrix");
-  threshold.setAttribute("result", "mask");
-
-  const clip = document.createElementNS(SVG_NS, "feComposite");
-  clip.setAttribute("in", "SourceGraphic");
-  clip.setAttribute("in2", "mask");
-  clip.setAttribute("operator", "in");
-
-  filter.append(noise, threshold, clip);
-  inkDefs.append(filter);
-
-  const render = (cut) => {
-    threshold.setAttribute("values", `0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${NOISE_SLOPE} 0 0 0 ${cut}`);
-  };
-
-  return { id, render, remove: () => filter.remove() };
-}
-
-// Revela una imagen: aparece en manchas de tinta que crecen y se unen
-function inkImage(el, { duration = 1.6, delay = 0 } = {}) {
-  const timeline = gsap.timeline({ delay });
-
-  if (reducedMotion) return timeline.set(el, { autoAlpha: 1 });
-
-  const filter = createNoiseFilter();
-  const state = { cut: NOISE_START };
-  const render = () => filter.render(state.cut);
-
-  return timeline
-    .call(render)
-    .set(el, { autoAlpha: 1, filter: `url(#${filter.id})` })
-    .to(state, { cut: NOISE_END, duration, ease: "power1.inOut", onUpdate: render })
-    .eventCallback("onComplete", () => {
-      el.style.filter = "";
-      filter.remove();
-    });
-}
-
-// Pasada de tinta sobre una imagen ya visible (hover): se abren huecos en
-// manchas y la foto se vuelve a cerrar
-const NOISE_HOVER = -11; // umbral en el punto más abierto de la pasada
-
-function inkImagePulse(el, { duration = 0.9 } = {}) {
-  if (reducedMotion || el.style.filter || el.inkPulse?.isActive()) return;
-
-  const filter = createNoiseFilter();
-  const state = { cut: NOISE_END };
-  const render = () => filter.render(state.cut);
-
-  render();
-  el.style.filter = `url(#${filter.id})`;
-
-  el.inkPulse = gsap.timeline({
-    onComplete: () => {
-      el.style.filter = "";
-      filter.remove();
-    },
-  })
-    .to(state, { cut: NOISE_HOVER, duration: duration * 0.4, ease: "power2.out", onUpdate: render })
-    .to(state, { cut: NOISE_END, duration: duration * 0.6, ease: "power2.inOut", onUpdate: render });
-}
-
 // Entrada de los textos que ya están en pantalla al cargar
 function revealIntro() {
   const items = document.querySelectorAll('[data-ink]:not([data-ink="scroll"])');
@@ -268,27 +185,6 @@ function initScrollInk() {
         onEnter: () => ink(line, { delay: i * 0.08 }),
       });
     });
-  });
-}
-
-// Imágenes con data-ink-image: aparecen con tinta cuando entran en pantalla y
-// ya se han descargado (con carga diferida pueden tardar en llegar)
-function initImageInk() {
-  document.querySelectorAll("[data-ink-image]").forEach((img) => {
-    const loaded = new Promise((resolve) => {
-      if (img.complete && img.naturalWidth) return resolve();
-      img.addEventListener("load", resolve, { once: true });
-      img.addEventListener("error", resolve, { once: true });
-    });
-
-    ScrollTrigger.create({
-      trigger: img,
-      start: "top 90%",
-      once: true,
-      onEnter: () => loaded.then(() => inkImage(img)),
-    });
-
-    img.addEventListener("mouseenter", () => inkImagePulse(img));
   });
 }
 
@@ -316,7 +212,175 @@ function initSoundToggle() {
 
 
 /* ==========================================================================
-   5. Footer: el nombre se junta al llegar al final
+   5. Galería
+   Cada foto se mueve por dentro de su marco al hacer scroll (parallax) y, al
+   pasar el ratón, la tinta muerde sus bordes de forma irregular.
+   ========================================================================== */
+
+// Parallax: la foto está ampliada dentro del marco y se desplaza en vertical
+const PHOTO_SCALE = 1.2;
+const PHOTO_SHIFT = 8; // % de su alto hacia cada lado (el margen es del 10 %)
+
+function initPhotoParallax(photo) {
+  const img = photo.querySelector("img");
+
+  gsap.set(img, { scale: PHOTO_SCALE });
+  gsap.fromTo(img, { yPercent: -PHOTO_SHIFT }, {
+    yPercent: PHOTO_SHIFT,
+    ease: "none",
+    scrollTrigger: { trigger: photo, start: "top bottom", end: "bottom top", scrub: true },
+  });
+}
+
+// Máscara del hover: un campo de 0 (borde) a 1 (interior) con ruido suave,
+// para que al subir el umbral la foto se coma desde los bordes en manchas.
+// Se calcula una vez por proporción; el hover solo mueve el umbral.
+const EDGE_DEPTH = 0.18; // parte del lado corto donde actúa la tinta
+const EDGE_NOISE = 0.25; // peso del ruido frente a la distancia al borde
+const EDGE_SLOPE = 40;   // dureza del corte
+const EDGE_REST = -0.05; // umbral sin hover: toda la foto visible
+const EDGE_HOVER = 0.12; // umbral con hover
+
+const edgeMasks = new Map();
+
+function edgeMask(ratio) {
+  const key = ratio.toFixed(2);
+  if (edgeMasks.has(key)) return edgeMasks.get(key);
+
+  const w = 480;
+  const h = Math.round(w / ratio);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+  // Ruido: una retícula aleatoria pequeña ampliada y desenfocada, en dos escalas.
+  // Se dibuja más grande que el lienzo para que el desenfoque no oscurezca los bordes.
+  const octave = (cells, alpha) => {
+    const grid = document.createElement("canvas");
+    grid.width = cells;
+    grid.height = Math.max(2, Math.round(cells / ratio));
+    const gctx = grid.getContext("2d");
+    const pixels = gctx.createImageData(grid.width, grid.height);
+    for (let i = 0; i < pixels.data.length; i += 4) {
+      pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = Math.random() * 255;
+      pixels.data[i + 3] = 255;
+    }
+    gctx.putImageData(pixels, 0, 0);
+
+    const cell = w / cells;
+    ctx.globalAlpha = alpha;
+    ctx.filter = `blur(${cell / 2}px)`;
+    ctx.drawImage(grid, -cell, -cell, w + cell * 2, h + cell * 2);
+  };
+  octave(10, 1);
+  octave(28, 0.5);
+
+  // Normaliza el ruido y lo combina con la distancia al borde
+  const image = ctx.getImageData(0, 0, w, h);
+  const data = image.data;
+  let min = 255;
+  let max = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    min = Math.min(min, data[i]);
+    max = Math.max(max, data[i]);
+  }
+
+  const depth = EDGE_DEPTH * Math.min(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const noise = (data[i] - min) / (max - min || 1);
+      const edge = Math.min(1, Math.min(x, w - 1 - x, y, h - 1 - y) / depth);
+      const value = edge * (1 - EDGE_NOISE) + noise * EDGE_NOISE;
+      data[i] = data[i + 1] = data[i + 2] = value * 255;
+      data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+
+  const url = canvas.toDataURL();
+  edgeMasks.set(key, url);
+  return url;
+}
+
+function createEdgeFilter(ratio) {
+  ensureInkDefs();
+
+  const id = `ink-${++inkCount}`;
+  const filter = document.createElementNS(SVG_NS, "filter");
+  filter.id = id;
+  filter.setAttribute("x", "0");
+  filter.setAttribute("y", "0");
+  filter.setAttribute("width", "1");
+  filter.setAttribute("height", "1");
+  filter.setAttribute("color-interpolation-filters", "sRGB");
+
+  const mask = document.createElementNS(SVG_NS, "feImage");
+  mask.setAttribute("href", edgeMask(ratio));
+  mask.setAttribute("preserveAspectRatio", "none");
+  mask.setAttribute("result", "field");
+
+  const threshold = document.createElementNS(SVG_NS, "feColorMatrix");
+  threshold.setAttribute("in", "field");
+  threshold.setAttribute("type", "matrix");
+  threshold.setAttribute("result", "mask");
+
+  const clip = document.createElementNS(SVG_NS, "feComposite");
+  clip.setAttribute("in", "SourceGraphic");
+  clip.setAttribute("in2", "mask");
+  clip.setAttribute("operator", "in");
+
+  filter.append(mask, threshold, clip);
+  inkDefs.append(filter);
+
+  // Alfa = pendiente * (valor - umbral) + 0,5: visible donde el campo supera el umbral
+  const render = (limit) => {
+    const cut = 0.5 - EDGE_SLOPE * limit;
+    threshold.setAttribute("values", `0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${EDGE_SLOPE} 0 0 0 ${cut}`);
+  };
+
+  return { id, render };
+}
+
+function initPhotoHover(photo) {
+  const state = { limit: EDGE_REST };
+  let filter = null;
+
+  const render = () => filter.render(state.limit);
+
+  photo.addEventListener("mouseenter", () => {
+    filter ??= createEdgeFilter(photo.offsetWidth / photo.offsetHeight);
+    render();
+    photo.style.filter = `url(#${filter.id})`;
+    gsap.to(state, { limit: EDGE_HOVER, duration: 0.6, ease: "power3.out", overwrite: true, onUpdate: render });
+  });
+
+  photo.addEventListener("mouseleave", () => {
+    if (!filter) return;
+    gsap.to(state, {
+      limit: EDGE_REST,
+      duration: 0.5,
+      ease: "power2.inOut",
+      overwrite: true,
+      onUpdate: render,
+      onComplete: () => { photo.style.filter = ""; },
+    });
+  });
+}
+
+function initGallery() {
+  if (reducedMotion) return;
+
+  document.querySelectorAll(".photo").forEach((photo) => {
+    initPhotoParallax(photo);
+    initPhotoHover(photo);
+  });
+}
+
+
+/* ==========================================================================
+   6. Footer: el nombre se junta al llegar al final
    ========================================================================== */
 
 function isAtPageEnd() {
@@ -396,7 +460,7 @@ function initFooter() {
 
 
 /* ==========================================================================
-   6. Etiqueta del cursor
+   7. Etiqueta del cursor
    Sobre los elementos con data-cursor="Texto" aparece una píldora que sigue
    al ratón con inercia. Entra y sale con el efecto de tinta. Solo con ratón.
    ========================================================================== */
@@ -410,32 +474,80 @@ function initCursorTag() {
   const target = { x: 0, y: 0 };
   const pos = { x: 0, y: 0 };
   let moved = false;
-  let shown = false;
-  let animation = null;
+  let shown = false;   // debería verse (el puntero está sobre un data-cursor)
+  let visible = false; // está en pantalla, aunque sea disolviéndose
+
+  // Un solo estado de tinta para entrar y salir: si se cambia a mitad, la
+  // animación sigue desde donde está en vez de saltar
+  const filter = createInkFilter();
+  const DISSOLVED = { blur: 10, a: INK_AMPLITUDE, b: INK_CUT, opacity: 0 };
+  const state = { ...DISSOLVED };
+  const render = () => {
+    filter.render(state);
+    tag.style.opacity = state.opacity;
+  };
 
   gsap.set(tag, { xPercent: -50, yPercent: -50 });
+  render();
 
   const place = () => gsap.set(tag, { x: pos.x, y: pos.y });
+
+  // Cada cambio de estado corta la animación anterior y sigue desde ahí
+  let tweens = [];
+  const animate = (...next) => {
+    tweens.forEach((tween) => tween.kill());
+    tweens = next;
+  };
 
   const show = (text) => {
     tag.textContent = text;
     if (shown) return;
-
     shown = true;
-    pos.x = target.x;
-    pos.y = target.y;
-    place();
 
-    animation?.progress(1).kill();
-    animation = ink(tag, { duration: 0.6 });
+    // Si ya no se veía, aparece directamente bajo el puntero
+    if (!visible) {
+      visible = true;
+      pos.x = target.x;
+      pos.y = target.y;
+      place();
+      tag.style.visibility = "visible";
+    }
+
+    tag.style.filter = `url(#${filter.id})`;
+    animate(
+      gsap.to(state, { blur: 0, opacity: 1, duration: 0.6, ease: "power3.out", onUpdate: render }),
+      gsap.to(state, {
+        a: 1,
+        b: 0,
+        duration: 0.3,
+        delay: 0.3,
+        ease: "power1.in",
+        onUpdate: render,
+        onComplete: () => { tag.style.filter = ""; },
+      }),
+    );
   };
 
   const hide = () => {
     if (!shown) return;
-
     shown = false;
-    animation?.progress(1).kill();
-    animation = inkOut(tag, { duration: 0.5 });
+
+    tag.style.filter = `url(#${filter.id})`;
+    animate(
+      gsap.to(state, { a: DISSOLVED.a, b: DISSOLVED.b, duration: 0.15, ease: "power1.out", onUpdate: render }),
+      gsap.to(state, {
+        blur: DISSOLVED.blur,
+        opacity: 0,
+        duration: 0.5,
+        ease: "power2.in",
+        onUpdate: render,
+        onComplete: () => {
+          visible = false;
+          tag.style.visibility = "hidden";
+          tag.style.filter = "";
+        },
+      }),
+    );
   };
 
   // Muestra u oculta la etiqueta según lo que haya bajo el puntero
@@ -457,15 +569,19 @@ function initCursorTag() {
     else hide();
   });
 
-  document.documentElement.addEventListener("pointerleave", hide);
+  // El puntero sale de la ventana
+  document.addEventListener("mouseout", (event) => {
+    if (!event.relatedTarget) hide();
+  });
 
   // Al hacer scroll con el ratón quieto cambia lo que hay debajo
   const onScroll = () => moved && check();
   if (lenis) lenis.on("scroll", onScroll);
   else window.addEventListener("scroll", onScroll, { passive: true });
 
+  // Sigue al puntero también mientras se disuelve, para que no se quede clavada
   gsap.ticker.add(() => {
-    if (!shown) return;
+    if (!visible) return;
 
     // Independiente de la tasa de fotogramas: equivale a 0,1 por fotograma a 60 fps
     const ease = 1 - Math.pow(1 - CURSOR_INERTIA, gsap.ticker.deltaRatio());
@@ -477,7 +593,7 @@ function initCursorTag() {
 
 
 /* ==========================================================================
-   7. Carga: el nombre se abre mientras un contador va de 0 a 100 y baja al
+   8. Carga: el nombre se abre mientras un contador va de 0 a 100 y baja al
    footer (solo la primera vez por sesión)
    ========================================================================== */
 
@@ -595,7 +711,7 @@ async function runLoader() {
 
 
 /* ==========================================================================
-   8. Arranque
+   9. Arranque
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -609,9 +725,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initFooter();
   initInkHover();
   initScrollInk();
+  initGallery();
   initCursorTag();
 
   await runLoader();
-  initImageInk();
   revealIntro();
 });

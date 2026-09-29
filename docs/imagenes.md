@@ -35,9 +35,11 @@ Cómo se preparan y se colocan las fotos en la web.
 - Solo el footer queda fuera de las fotos: la galería termina con `padding-bottom: var(--footer-height) + var(--margin)`, así que al llegar al final el footer está a 20 px de la última foto y sobre fondo blanco.
 - Navbar y footer se superponen a las fotos con `mix-blend-mode: difference`.
 
-## Efecto tinta en las fotos
+## Movimiento y hover
 
-- **Carga:** cada `<img data-ink-image>` aparece cuando entra en pantalla (`top 90%`) y ya se ha descargado. Un ruido orgánico (`feTurbulence`) recorta la foto en manchas y, al subir el umbral (`feColorMatrix` sobre el alfa), estas crecen y se funden hasta dejar ver la foto entera (1,6 s).
-- **Hover:** al pasar el ratón se abren huecos en manchas y la foto se vuelve a cerrar (0,9 s). Cada pasada usa un ruido distinto.
-- **Etiqueta del cursor:** sobre los elementos con `data-cursor="View"` aparece una píldora negra que sigue al ratón con inercia (0,1 por fotograma, como en Almira Kho). Entra y sale con el efecto de tinta. Solo con ratón, no en táctil.
-- Si el JS falla, las fotos se muestran igual a los 4 s. Con `prefers-reduced-motion` aparecen sin animación.
+- **Sin animación de entrada:** las fotos ya están en su sitio al cargar la página.
+- **Scroll suave como en Almira Kho:** Lenis con `duration: 1.2`, frenada exponencial y `wheelMultiplier: 0.8` (valores sacados de su código).
+- **Parallax dentro del marco:** el `<figure>` tiene la proporción de la foto y `overflow: hidden`. Dentro, la foto va al 120 % y se desplaza del -8 % al 8 % de su alto mientras cruza la pantalla (ScrollTrigger con `scrub`). El 120 % deja un 10 % de margen por cada lado, así que nunca asoma el fondo.
+- **Hover sutil:** al pasar el ratón la tinta muerde los bordes de la foto de forma irregular (unos 20 a 30 px como mucho) y al salir se vuelven a cerrar. La máscara (distancia al borde más ruido suave) se calcula una vez por proporción en un `<canvas>` y va al filtro SVG con `feImage`; el hover solo mueve el umbral, así que es ligero.
+- **Etiqueta del cursor:** sobre los elementos con `data-cursor="View"` aparece una píldora negra que sigue al ratón con inercia (0,1 por fotograma, como en Almira Kho). Entra y sale con tinta y sigue al ratón también mientras se disuelve, así que al salir rápido se desvanece detrás del puntero en vez de quedarse clavada. Si se vuelve a entrar a mitad, continúa desde donde estaba. Solo con ratón, no en táctil.
+- Con `prefers-reduced-motion` no hay parallax ni hover de tinta.
