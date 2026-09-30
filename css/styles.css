@@ -20,17 +20,22 @@
   --cols: 4;
   --margin: 20px;
   --gutter: 10px;
+  --col: calc((100vw - var(--margin) * 2 - var(--gutter) * 3) / 4);
 
   /* Tipografía */
   --font: "Mona Sans", system-ui, sans-serif;
-  --fs-small: 11px;
-  --fs-medium: 20px;
-  --fs-display: clamp(22px, 2.78vw, 40px);
-  --lh: 1.4;
+  --fs-small: 13px;
+  --fs-body: 16px;
+  --fs-large: clamp(28px, 2.78vw, 40px);
+  --fs-huge: clamp(34px, 5.9vw, 85px);
 
   /* Color */
   --color-bg: #fff;
   --color-text: #000;
+  --color-ink: #fff; /* se usa con mix-blend-mode: difference */
+
+  /* Movimiento */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 
@@ -59,9 +64,11 @@ html::-webkit-scrollbar {
 body {
   min-height: 100dvh;
   font-family: var(--font);
-  font-size: var(--fs-small);
-  font-weight: 400;
-  line-height: var(--lh);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  line-height: 1;
+  text-transform: uppercase;
+  font-feature-settings: "case";
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
@@ -69,7 +76,8 @@ body {
 
 img,
 video,
-svg {
+svg,
+picture {
   display: block;
   max-width: 100%;
 }
@@ -82,9 +90,29 @@ a {
 button {
   font: inherit;
   color: inherit;
+  text-transform: inherit;
   background: none;
   border: 0;
   cursor: pointer;
+}
+
+ul {
+  list-style: none;
+}
+
+h1,
+h2,
+h3 {
+  font: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Lenis */
@@ -101,6 +129,14 @@ html.lenis body {
   overscroll-behavior: contain;
 }
 
+/* Páginas sin scroll nativo (home e índice): la rueda mueve los carruseles */
+[data-scroll="virtual"] {
+  height: 100svh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
 
 /* ==========================================================================
    4. Layout
@@ -113,14 +149,563 @@ html.lenis body {
   padding-inline: var(--margin);
 }
 
-/* Saca un elemento del margen para ir a sangre */
-.bleed {
-  margin-inline: calc(var(--margin) * -1);
+
+/* ==========================================================================
+   5. Componentes
+   ========================================================================== */
+
+/* Enlace: al pasar el ratón el texto sube y entra una copia desde abajo */
+.link {
+  display: inline-block;
+}
+
+.link__inner {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.link__text {
+  display: inline-block;
+  text-shadow: 0 1.2em currentColor;
+  transition: transform 0.6s var(--ease-out);
+}
+
+.link:hover .link__text {
+  transform: translateY(-1.2em);
+}
+
+/* Cabecera: texto blanco que se invierte con lo que tiene detrás */
+.header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  align-items: start;
+  padding-top: var(--margin);
+  color: var(--color-ink);
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+.header a,
+.header button {
+  pointer-events: auto;
+}
+
+.header__name {
+  grid-column: 1;
+  font-size: var(--fs-small);
+}
+
+.header__works {
+  grid-column: 2;
+  font-size: var(--fs-large);
+  line-height: 0.9;
+}
+
+.header__toggle {
+  display: block;
+  line-height: inherit;
+}
+
+.header__current {
+  margin-top: 5px;
+}
+
+.header__infos {
+  grid-column: 3 / -1;
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-small);
+}
+
+/* Menú de trabajos: tapa la página; al pasar por un proyecto sale su foto de fondo */
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: var(--color-bg);
+  clip-path: inset(0 0 100% 0);
+}
+
+.menu__image {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.menu__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu.has-image .menu__image {
+  opacity: 1;
+}
+
+.menu__inner {
+  position: relative;
+  align-items: start;
+  padding-top: calc(var(--margin) + var(--fs-large) * 0.9 + 5px);
+  color: var(--color-ink);
+  mix-blend-mode: difference;
+}
+
+.menu__label {
+  grid-column: 1;
+  padding-top: calc(var(--fs-large) * 0.9 - var(--fs-small));
+  font-size: var(--fs-small);
+}
+
+.menu__list {
+  grid-column: 2 / -1;
+  font-size: var(--fs-large);
+  line-height: 0.9;
+}
+
+.menu__item {
+  overflow: hidden;
+  padding-top: 5px;
+}
+
+.menu__item a {
+  display: inline-block;
+}
+
+.menu__list:hover .menu__item a:not(:hover) {
+  opacity: 0.4;
+}
+
+/* Tarjeta de proyecto: marco fijo, foto recortada y ampliada que se mueve dentro */
+.carousel {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.card__image {
+  position: absolute;
+  inset: 0;
+  transform: scale(1.2);
+}
+
+.card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card__title {
+  position: relative;
+  padding-inline: var(--margin);
+  font-size: var(--fs-large);
+  text-align: center;
+  color: var(--color-ink);
+  mix-blend-mode: difference;
+}
+
+/* Etiqueta que sigue al ratón sobre los elementos con data-cursor (script.js) */
+.cursor-tag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  padding: 6px 10px;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  color: var(--color-bg);
+  background: var(--color-text);
+  clip-path: inset(0 100% 0 0);
+  pointer-events: none;
+}
+
+/* Transición entre páginas: 10 franjas que tapan la pantalla al salir y se
+   retiran al entrar. Arrancan tapando; si el JS no llega en 3 s, se ocultan. */
+.transition {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  animation: transition-fallback 0s 3s forwards;
+}
+
+.js .transition {
+  animation: none;
+}
+
+.transition span {
+  flex: 1;
+  margin-top: -1px; /* sin rendijas entre franjas */
+  background: var(--color-text);
+  transform-origin: 50% 100%;
+}
+
+@keyframes transition-fallback {
+  to { visibility: hidden; }
 }
 
 
 /* ==========================================================================
-   5. Accesibilidad
+   6. Home
+   Foto fija a la izquierda (60 %), carrusel de proyectos a la derecha (40 %)
+   y la presentación debajo, todo en una pantalla.
+   ========================================================================== */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+}
+
+.home__top {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 60% 40%;
+  min-height: 0;
+}
+
+.home__hero {
+  overflow: hidden;
+}
+
+.home__hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home__description {
+  padding-block: var(--margin);
+  font-size: var(--fs-large);
+}
+
+.home__description p {
+  grid-column: 1 / 4;
+}
+
+
+/* ==========================================================================
+   7. Índice de proyectos: tres columnas en bucle
+   ========================================================================== */
+
+.works {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 100svh;
+}
+
+.works .card {
+  height: 70svh;
+}
+
+
+/* ==========================================================================
+   8. Proyecto
+   La portada a todo el ancho y luego las fotos a su proporción: horizontales
+   a todo el ancho y verticales en las dos columnas de la derecha. El texto se
+   queda pegado abajo. Al final, el siguiente proyecto y, detrás de todo, el
+   footer, que queda al descubierto al llegar al final.
+   ========================================================================== */
+
+.project__content {
+  position: relative;
+  z-index: 10;
+  background: var(--color-bg);
+}
+
+.project__cover img,
+.shot img {
+  width: 100%;
+  height: auto;
+}
+
+.project__gallery {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.shot {
+  width: calc(50% - var(--gutter) / 2);
+}
+
+.shot--wide {
+  width: 100%;
+}
+
+/* Alto 0 y pegado abajo: el texto flota sobre las fotos sin ocupar hueco */
+.project__description {
+  position: sticky;
+  bottom: var(--margin);
+  height: 0;
+  color: var(--color-ink);
+  mix-blend-mode: difference;
+}
+
+.project__description p {
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--margin) + var(--col) + var(--gutter));
+  width: var(--col);
+}
+
+.next {
+  position: relative;
+  z-index: 10;
+  display: block;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--color-text);
+}
+
+.next__image,
+.next__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Velo blanco con desenfoque sobre la foto */
+.next__image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(255 255 255 / 0.5);
+  backdrop-filter: blur(5px);
+}
+
+.next__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--margin);
+  color: var(--color-text);
+}
+
+.next__title {
+  font-size: var(--fs-large);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--margin);
+  height: 100svh;
+  padding: var(--margin);
+  overflow: hidden;
+}
+
+.footer__mail {
+  font-size: var(--fs-huge);
+  line-height: 0.75;
+  text-transform: uppercase;
+}
+
+.footer__based {
+  flex-shrink: 0;
+  font-size: var(--fs-small);
+}
+
+/* Cuadrado que rebota por el footer y cambia de foto en cada choque */
+.bounce {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 128px;
+  height: 128px;
+}
+
+.bounce img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  visibility: hidden;
+}
+
+.bounce img.is-active {
+  visibility: visible;
+}
+
+
+/* ==========================================================================
+   9. About
+   ========================================================================== */
+
+.about__intro {
+  grid-template-rows: auto 1fr auto;
+  align-items: end;
+  min-height: 100svh;
+  padding-block: calc(var(--margin) + var(--fs-large) * 0.9 + 12px) var(--margin);
+}
+
+.about__bio {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+  font-size: var(--fs-small);
+}
+
+.about__label {
+  grid-column: 2;
+  align-self: start;
+  font-size: var(--fs-small);
+}
+
+.about__intro .about__label,
+.about__intro .about__list {
+  grid-row: 3;
+}
+
+.about__list {
+  grid-column: 3 / -1;
+  font-size: var(--fs-large);
+  line-height: 0.9;
+}
+
+.about__section {
+  align-items: start;
+  margin-top: 90px;
+}
+
+/* Foto pequeña fija en el centro: cambia mientras se hace scroll */
+.about__image {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 5;
+  width: 145px;
+  height: 145px;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.about__image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  visibility: hidden;
+}
+
+.about__image img.is-active {
+  visibility: visible;
+}
+
+.about__closing {
+  position: relative;
+  z-index: 6;
+  height: 100svh;
+  margin-top: 90px;
+}
+
+.about__closing img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+/* ==========================================================================
+   10. Móvil
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .header__works {
+    grid-column: 2 / 4;
+  }
+
+  .header__infos {
+    grid-column: 4;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .menu__list {
+    grid-column: 1 / -1;
+  }
+
+  .menu__label {
+    display: none;
+  }
+
+  .home__top {
+    grid-template-columns: 1fr;
+  }
+
+  .home__hero {
+    display: none;
+  }
+
+  .home__description p {
+    grid-column: 1 / -1;
+  }
+
+  .works {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .works .carousel:nth-child(n + 4) {
+    display: none;
+  }
+
+  .shot {
+    width: 100%;
+  }
+
+  .project__description p {
+    left: var(--margin);
+    width: calc(100% - var(--margin) * 2);
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bounce {
+    width: 90px;
+    height: 90px;
+  }
+
+  .about__bio,
+  .about__list {
+    grid-column: 2 / -1;
+  }
+
+  .about__label {
+    grid-column: 1;
+  }
+}
+
+
+/* ==========================================================================
+   11. Accesibilidad
    ========================================================================== */
 
 :focus-visible {

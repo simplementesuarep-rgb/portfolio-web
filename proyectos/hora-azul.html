@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hora azul – Simplemente Suarep</title>
+  <meta name="description" content="Twenty minutes of blue light after sunset, stretched over one long evening. Photography and colour grading. Digital, 2025.">
+  <meta name="theme-color" content="#ffffff">
+
+  <link rel="preload" href="../assets/fonts/MonaSans-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../css/styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js" defer></script>
+  <script src="../js/script.js" defer></script>
+</head>
+<body>
+
+  <header class="header grid">
+    <p class="header__name"><a class="link" href="../index.html"><span class="link__inner"><span class="link__text">Simplemente Suarep</span></span></a></p>
+    <div class="header__works">
+      <button class="header__toggle" type="button" aria-expanded="false" aria-controls="menu">Works,</button>
+      <h1 class="header__current">Hora azul</h1>
+    </div>
+    <nav class="header__infos" aria-label="Info">
+      <a class="link" href="../about.html"><span class="link__inner"><span class="link__text">About</span></span></a>
+      <a class="link" href="#" aria-label="Instagram"><span class="link__inner"><span class="link__text">IG</span></span></a>
+    </nav>
+  </header>
+
+  <div class="menu" id="menu" inert>
+    <div class="menu__image" aria-hidden="true"><img alt=""></div>
+    <div class="menu__inner grid">
+      <p class="menu__label">Selected</p>
+      <ul class="menu__list">
+        <li class="menu__item"><a href="../proyectos/index.html">View all</a></li>
+        <li class="menu__item"><a href="../proyectos/umbral.html" data-image="../assets/img/12-1600.webp">Umbral</a></li>
+        <li class="menu__item"><a href="../proyectos/marea-baja.html" data-image="../assets/img/22-1600.webp">Marea baja</a></li>
+        <li class="menu__item"><a href="../proyectos/hora-azul.html" data-image="../assets/img/sesion10-03-6-1600.webp">Hora azul</a></li>
+        <li class="menu__item"><a href="../proyectos/cuerpo-quieto.html" data-image="../assets/img/sesion10-03-3-1600.webp">Cuerpo quieto</a></li>
+        <li class="menu__item"><a href="../proyectos/ruido-blanco.html" data-image="../assets/img/30-1600.webp">Ruido blanco</a></li>
+        <li class="menu__item"><a href="../proyectos/sal.html" data-image="../assets/img/sesion-fotos3-9-1600.webp">Sal</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <main class="project">
+    <div class="project__content">
+      <picture class="project__cover">
+          <source type="image/avif" srcset="../assets/img/sesion10-03-6-800.avif 800w, ../assets/img/sesion10-03-6-1600.avif 1600w, ../assets/img/sesion10-03-6-2400.avif 2400w" sizes="100vw">
+          <img src="../assets/img/sesion10-03-6-1600.webp" srcset="../assets/img/sesion10-03-6-800.webp 800w, ../assets/img/sesion10-03-6-1600.webp 1600w, ../assets/img/sesion10-03-6-2400.webp 2400w" sizes="100vw" width="2400" height="1600" alt="" fetchpriority="high" decoding="async">
+        </picture>
+      <div class="project__gallery">
+        <figure class="shot">
+          <picture>
+          <source type="image/avif" srcset="../assets/img/3-640.avif 640w, ../assets/img/3-1280.avif 1280w, ../assets/img/3-2000.avif 2000w" sizes="(max-width: 767px) 100vw, 50vw">
+          <img src="../assets/img/3-1280.webp" srcset="../assets/img/3-640.webp 640w, ../assets/img/3-1280.webp 1280w, ../assets/img/3-2000.webp 2000w" sizes="(max-width: 767px) 100vw, 50vw" width="2000" height="3000" alt="" loading="lazy" decoding="async">
+        </picture>
+        </figure>
+        <figure class="shot shot--wide">
+          <picture>
+          <source type="image/avif" srcset="../assets/img/sesion10-03-8-800.avif 800w, ../assets/img/sesion10-03-8-1600.avif 1600w, ../assets/img/sesion10-03-8-2400.avif 2400w" sizes="100vw">
+          <img src="../assets/img/sesion10-03-8-1600.webp" srcset="../assets/img/sesion10-03-8-800.webp 800w, ../assets/img/sesion10-03-8-1600.webp 1600w, ../assets/img/sesion10-03-8-2400.webp 2400w" sizes="100vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
+        </picture>
+        </figure>
+        <figure class="shot">
+          <picture>
+          <source type="image/avif" srcset="../assets/img/4-640.avif 640w, ../assets/img/4-1280.avif 1280w, ../assets/img/4-2000.avif 2000w" sizes="(max-width: 767px) 100vw, 50vw">
+          <img src="../assets/img/4-1280.webp" srcset="../assets/img/4-640.webp 640w, ../assets/img/4-1280.webp 1280w, ../assets/img/4-2000.webp 2000w" sizes="(max-width: 767px) 100vw, 50vw" width="2000" height="3000" alt="" loading="lazy" decoding="async">
+        </picture>
+        </figure>
+        <figure class="shot shot--wide">
+          <picture>
+          <source type="image/avif" srcset="../assets/img/12-800.avif 800w, ../assets/img/12-1600.avif 1600w, ../assets/img/12-2400.avif 2400w" sizes="100vw">
+          <img src="../assets/img/12-1600.webp" srcset="../assets/img/12-800.webp 800w, ../assets/img/12-1600.webp 1600w, ../assets/img/12-2400.webp 2400w" sizes="100vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
+        </picture>
+        </figure>
+      </div>
+      <div class="project__description">
+        <p>Twenty minutes of blue light after sunset, stretched over one long evening. Photography and colour grading. Digital, 2025.</p>
+      </div>
+    </div>
+
+    <a class="next" href="cuerpo-quieto.html" data-cursor="View">
+      <picture class="next__image">
+          <source type="image/avif" srcset="../assets/img/sesion10-03-3-800.avif 800w, ../assets/img/sesion10-03-3-1600.avif 1600w, ../assets/img/sesion10-03-3-2400.avif 2400w" sizes="100vw">
+          <img src="../assets/img/sesion10-03-3-1600.webp" srcset="../assets/img/sesion10-03-3-800.webp 800w, ../assets/img/sesion10-03-3-1600.webp 1600w, ../assets/img/sesion10-03-3-2400.webp 2400w" sizes="100vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
+        </picture>
+      <span class="next__text">
+        <span class="next__label">Next project</span>
+        <span class="next__title">Cuerpo quieto</span>
+      </span>
+    </a>
+
+    <footer class="footer">
+      <a class="footer__mail" href="mailto:hola@simplementesuarep.com">hola@simplementesuarep.com</a>
+      <p class="footer__based">Based in Spain, open to projects anywhere</p>
+      <div class="bounce" aria-hidden="true">
+        <img src="../assets/img/3-640.webp" alt="" loading="lazy">
+        <img src="../assets/img/sesion10-03-8-800.webp" alt="" loading="lazy">
+        <img src="../assets/img/4-640.webp" alt="" loading="lazy">
+        <img src="../assets/img/12-800.webp" alt="" loading="lazy">
+      </div>
+    </footer>
+  </main>
+
+  <div class="cursor-tag" aria-hidden="true"></div>
+  <div class="transition" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+
+</body>
+</html>
