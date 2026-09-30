@@ -584,9 +584,11 @@ function initBounce() {
    ========================================================================== */
 
 const LINK = {
-  out: 0.3,              // el texto sale por la derecha
-  in: 0.45,              // y vuelve a entrar por la izquierda
-  ease: "power3.inOut",
+  out: 0.2,              // el texto sale por la derecha, acelerando
+  outEase: "power2.in",
+  gap: 0.1,              // instante en que la caja queda vacía
+  in: 0.2,               // y vuelve a entrar por la izquierda, frenando
+  inEase: "power2.out",
 };
 
 function initLinks() {
@@ -596,12 +598,15 @@ function initLinks() {
     const text = box.querySelector(".link__inner, .header__toggle-inner");
     if (!text) return;
 
+    let busy = false;
     box.addEventListener("pointerenter", (event) => {
-      if (event.pointerType !== "mouse") return;
-      gsap.killTweensOf(text);
-      gsap.timeline()
-        .to(text, { clipPath: "inset(0% 0% 0% 100%)", duration: LINK.out, ease: LINK.ease })
-        .fromTo(text, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: LINK.in, ease: LINK.ease });
+      // Si el barrido anterior no ha terminado, se deja acabar en vez de reiniciarlo
+      if (event.pointerType !== "mouse" || busy) return;
+      busy = true;
+      gsap.timeline({ onComplete: () => (busy = false) })
+        .to(text, { clipPath: "inset(0% 0% 0% 100%)", duration: LINK.out, ease: LINK.outEase })
+        .set(text, { clipPath: "inset(0% 100% 0% 0%)" })
+        .to(text, { clipPath: "inset(0% 0% 0% 0%)", duration: LINK.in, ease: LINK.inEase, delay: LINK.gap });
     });
   });
 }
