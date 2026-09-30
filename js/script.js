@@ -123,10 +123,12 @@ function initVirtualScroll() {
 /* ==========================================================================
    4. Menú de trabajos
    "Works," abre la lista de proyectos a pantalla completa. Detrás va la foto
-   del proyecto señalado, con un velo blanco y desenfoque. Con el ratón sobre
-   la lista pasan tres cosas, todas con inercia para que se sientan suaves:
-   la disciplina (izquierda) y el año (derecha) siguen al ratón en vertical,
-   y las filas cercanas al puntero se desplazan hacia la derecha.
+   del proyecto señalado, con un velo blanco y desenfoque. La lista empieza en
+   el centro de la pantalla y da vueltas sin final con la rueda o el dedo: se
+   repite tantas veces como haga falta para llenar el alto. La fila que queda
+   bajo el ratón, sea porque lo mueves o porque la lista pasa por debajo, se
+   marca con el relleno blanco, la disciplina (izquierda) y el año (derecha).
+   Todo va con inercia para que se sienta suave.
    ========================================================================== */
 
 const MENU = {
@@ -140,6 +142,9 @@ const MENU = {
   fill: 0.05,            // inercia con la que el relleno blanco pasa de una fila a otra (menos = más retardado)
   fillPad: 6,            // píxeles que el relleno sobresale por los lados del texto
   fillReveal: 0.4,       // barrido de entrada y salida del relleno
+  wheel: 0.6,            // píxeles que avanza la lista por cada unidad de rueda
+  touch: 1.5,            // píxeles que avanza por cada píxel que se arrastra el dedo
+  scrollEase: 0.08,      // inercia del scroll de la lista (menos = más suave)
 };
 
 function initMenu(transition) {
@@ -151,6 +156,7 @@ function initMenu(transition) {
   const list = menu.querySelector(".menu__list");
   const items = [...list.querySelectorAll(".menu__item")];
   const links = items.map((item) => item.querySelector("a"));
+  const count = items.length;
   const typeBox = menu.querySelector(".menu__label");
   const yearBox = menu.querySelector(".menu__year");
   const backdrops = [...menu.querySelectorAll(".menu__image img")];
@@ -159,38 +165,38 @@ function initMenu(transition) {
   let open = false;
   let pointerY = 0;
   let followY = 0;
-  let over = false; // el ratón está sobre la lista
-  let centers = [];
-  const indents = items.map(() => 0);
+  let over = false;   // el ratón está sobre la lista
+  let focused = -1;   // fila con el foco del teclado
+  let active = -1;    // fila marcada ahora mismo
 
   // Cada texto tiene dos capas apiladas: la nueva entra con un barrido desde la
   // izquierda, como el texto del ratón en la home, y la vieja sale por la derecha
   const swapper = (box) => {
     const spans = [...box.querySelectorAll(".menu__type")];
-    let active = -1;
+    let current = -1;
     const wipe = (span, from, to) => {
       if (reducedMotion) gsap.set(span, { clipPath: to });
       else gsap.fromTo(span, { clipPath: from }, { clipPath: to, duration: MENU.wipe, ease: MENU.wipeEase, overwrite: true });
     };
     return {
       show(text) {
-        const current = spans[active];
-        if (current && current.textContent === text && current.dataset.shown === "1") return;
-        const next = spans[(active + 1) % spans.length];
+        const now = spans[current];
+        if (now && now.textContent === text && now.dataset.shown === "1") return;
+        const next = spans[(current + 1) % spans.length];
         next.textContent = text;
         next.dataset.shown = "1";
         wipe(next, "inset(0% 100% 0% 0%)", "inset(0% 0% 0% 0%)");
-        if (current && current.dataset.shown === "1") {
-          current.dataset.shown = "0";
-          wipe(current, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
+        if (now && now.dataset.shown === "1") {
+          now.dataset.shown = "0";
+          wipe(now, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
         }
-        active = spans.indexOf(next);
+        current = spans.indexOf(next);
       },
       hide() {
-        const current = spans[active];
-        if (!current || current.dataset.shown !== "1") return;
-        current.dataset.shown = "0";
-        wipe(current, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
+        const now = spans[current];
+        if (!now || now.dataset.shown !== "1") return;
+        now.dataset.shown = "0";
+        wipe(now, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
       },
     };
   };
@@ -207,17 +213,60 @@ function initMenu(transition) {
 
   const showBackdrop = (index) => backdrops.forEach((image, i) => image.classList.toggle("is-active", i === index));
 
-  const measure = () => {
-    centers = items.map((item) => {
-      const box = item.getBoundingClientRect();
-      return box.top + box.height / 2;
-    });
+  /* ---- Lista sin final ---------------------------------------------------- */
+
+  // Las copias solo sirven para rellenar la pantalla: el lector de pantalla y
+  // el tabulador ven únicamente la lista original
+  let rows = [];
+  let rowH = 0;
+  let total = 0;
+  let startY = 0;
+  let wrap = (value) => value;
+  let scroll = 0;
+  let scrollTarget = 0;
+
+  const build = () => {
+    list.querySelectorAll(".menu__item--copy").forEach((copy) => copy.remove());
+    rowH = items[0].offsetHeight;
+    const copies = Math.max(1, Math.ceil((window.innerHeight + rowH * 2) / (rowH * count)));
+    const elements = [...items];
+    for (let c = 1; c < copies; c++) {
+      items.forEach((item) => {
+        const copy = item.cloneNode(true);
+        copy.classList.add("menu__item--copy");
+        copy.setAttribute("aria-hidden", "true");
+        copy.querySelector("a").tabIndex = -1;
+        list.append(copy);
+        elements.push(copy);
+      });
+    }
+    rows = elements.map((el, k) => ({ el, index: k % count, y: 0, indent: 0 }));
+    total = rows.length * rowH;
+    startY = window.innerHeight / 2 - rowH / 2; // "View all" arranca en el centro
+    wrap = gsap.utils.wrap(-rowH, total - rowH);
+    active = -1;
   };
 
-  // Relleno blanco de la fila señalada: entra y sale con un barrido lateral, y
-  // entre filas se desliza con inercia
+  // Lleva la lista, por el camino más corto, hasta dejar la fila i en el centro
+  const scrollToRow = (i) => {
+    const desired = -i * rowH;
+    scrollTarget = desired + Math.round((scrollTarget - desired) / total) * total;
+  };
+
+  ScrollTrigger.observe({
+    target: menu,
+    type: "wheel,touch",
+    preventDefault: true,
+    onChangeY: (self) => {
+      if (!open) return;
+      const wheel = self.event.type === "wheel";
+      scrollTarget += wheel ? -self.deltaY * MENU.wheel : self.deltaY * MENU.touch;
+    },
+  });
+
+  /* ---- Relleno blanco de la fila marcada ---------------------------------- */
+
   let fillY = 0;
-  let fillTarget = 0;
   const placeFill = () => {
     // De la disciplina (izquierda) al año (derecha): de margen a margen, más el respiro
     const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin"));
@@ -238,51 +287,79 @@ function initMenu(transition) {
     }
   };
 
+  // La caja (22 px) queda centrada en la línea de texto, que está 2,5 px por debajo del centro de la fila
+  const fillFor = (row) => row.y + rowH / 2 - 8.5;
+
+  // Cambia la fila marcada: relleno, disciplina, año y foto de fondo
+  const mark = (k) => {
+    if (k === active) return;
+    const was = active;
+    active = k;
+    if (k < 0) {
+      sweepFill(false);
+      type.hide();
+      year.hide();
+      showBackdrop(0);
+      return;
+    }
+    const { index } = rows[k];
+    if (was < 0) {
+      fillY = fillFor(rows[k]);
+      sweepFill(true);
+    }
+    showBackdrop(index);
+    type.show(links[index].dataset.type || "");
+    year.show(links[index].dataset.year || "");
+  };
+
   const tick = () => {
+    scroll += (scrollTarget - scroll) * (reducedMotion ? 1 : smoothing(MENU.scrollEase));
+
     const follow = reducedMotion ? 1 : smoothing(MENU.follow);
     followY += (pointerY - followY) * follow;
-    const y = followY - typeBox.offsetHeight / 2;
-    typeBox.style.transform = yearBox.style.transform = `translate3d(0, ${y}px, 0)`;
+    const labelY = followY - typeBox.offsetHeight / 2;
+    typeBox.style.transform = yearBox.style.transform = `translate3d(0, ${labelY}px, 0)`;
 
-    fillY += (fillTarget - fillY) * (reducedMotion ? 1 : smoothing(MENU.fill));
-    fill.style.transform = `translate3d(0, ${fillY}px, 0)`;
-
+    // Posición de cada fila y cuál queda bajo el ratón
     const ease = reducedMotion ? 1 : smoothing(MENU.indentEase);
-    items.forEach((item, i) => {
-      const distance = Math.abs(pointerY - centers[i]);
+    let under = -1;
+    rows.forEach((row, k) => {
+      row.y = wrap(startY + k * rowH + scroll);
+      if (over && pointerY >= row.y && pointerY < row.y + rowH) under = k;
+
+      const distance = Math.abs(pointerY - (row.y + rowH / 2));
       const closeness = distance < MENU.radius ? Math.cos((distance / MENU.radius) * (Math.PI / 2)) : 0;
-      indents[i] += ((over ? closeness * MENU.indent : 0) - indents[i]) * ease;
-      item.style.transform = `translate3d(${indents[i]}px, 0, 0)`;
+      row.indent += ((over ? closeness * MENU.indent : 0) - row.indent) * ease;
+      row.el.style.transform = `translate3d(${row.indent}px, ${row.y}px, 0)`;
     });
+    mark(over ? under : focused);
+
+    if (active >= 0) {
+      fillY += (fillFor(rows[active]) - fillY) * (reducedMotion ? 1 : smoothing(MENU.fill));
+      fill.style.transform = `translate3d(0, ${fillY}px, 0)`;
+    }
   };
 
   list.addEventListener("pointerenter", (event) => {
     over = true;
     pointerY = followY = event.clientY;
     placeFill();
-    sweepFill(true);
   });
   list.addEventListener("pointermove", (event) => (pointerY = event.clientY));
-  list.addEventListener("pointerleave", () => {
-    over = false;
-    sweepFill(false);
-    type.hide();
-    year.hide();
-    showBackdrop(0);
+  list.addEventListener("pointerleave", () => (over = false));
+
+  // Con el teclado, la fila con el foco viaja al centro y se marca
+  links.forEach((link, i) => {
+    link.addEventListener("focus", () => {
+      focused = i;
+      pointerY = followY = startY + rowH / 2;
+      placeFill();
+      scrollToRow(i);
+    });
+    link.addEventListener("blur", () => (focused = -1));
   });
 
-  items.forEach((item, i) => {
-    const hover = () => {
-      showBackdrop(i);
-      // La caja (22 px) queda centrada en la línea de texto, que está 2,5 px por debajo del centro de la fila
-      fillTarget = centers[i] - 8.5;
-      if (!over) fillY = fillTarget;
-      type.show(links[i].dataset.type || "");
-      year.show(links[i].dataset.year || "");
-    };
-    item.addEventListener("pointerenter", hover);
-    links[i].addEventListener("focus", hover);
-  });
+  /* ---- Abrir y cerrar ---------------------------------------------------- */
 
   // El menú se abre y se cierra con las mismas franjas que al cambiar de página:
   // se cierran, el cambio ocurre por detrás y se abren mostrando el resultado
@@ -302,11 +379,16 @@ function initMenu(transition) {
       lenis?.stop();
       loadBackdrops();
       showBackdrop(0);
-      measure();
+      build();
+      placeFill();
+      scroll = scrollTarget = 0;
+      tick();
       gsap.ticker.add(tick);
     } else {
       lenis?.start();
       over = false;
+      focused = -1;
+      active = -1;
       gsap.killTweensOf(fill);
       gsap.set(fill, { clipPath: "inset(0% 100% 0% 0%)" });
       type.hide();
@@ -332,14 +414,19 @@ function initMenu(transition) {
 
   toggle.addEventListener("click", () => set(!open));
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && open) {
+    if (!open) return;
+    if (event.key === "Escape") {
       set(false);
       toggle.focus();
+    } else if (event.key === "ArrowDown") {
+      scrollTarget -= rowH;
+    } else if (event.key === "ArrowUp") {
+      scrollTarget += rowH;
     }
   });
   window.addEventListener("resize", () => {
     if (!open) return;
-    measure();
+    build();
     placeFill();
   });
 }

@@ -312,19 +312,28 @@ html.lenis body {
 
 .menu__inner {
   position: relative;
-  padding-top: calc(var(--margin) + var(--fs-nav-lead) * 0.9 + 5px);
+  height: 100%;
   color: var(--color-ink);
   mix-blend-mode: difference;
 }
 
+/* La lista ocupa todo el alto: sus filas (y las copias que la repiten) se
+   colocan desde script.js y dan vueltas sin final */
 .menu__list {
+  position: relative;
   grid-column: 2 / -1;
+  height: 100%;
+  overflow: hidden;
   font-size: var(--fs-nav-lead);
   line-height: 0.9;
 }
 
-/* Cada fila es una máscara: el texto sube al abrir y se desplaza al acercar el ratón */
+/* Cada fila es una máscara y se desplaza al acercar el ratón */
 .menu__item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   overflow: hidden;
   padding-top: 5px;
   will-change: transform;
@@ -679,10 +688,6 @@ html.lenis body {
 
   .header__infos {
     grid-column: 3 / -1;
-  }
-
-  .menu__inner {
-    padding-top: calc(var(--margin) + var(--fs-nav) + 10px + var(--fs-nav-lead) * 0.9 + 5px);
   }
 
   .menu__list {
