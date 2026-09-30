@@ -142,7 +142,8 @@ const MENU = {
   indentEase: 0.15,      // inercia del desplazamiento de las filas
   wipe: 0.45,            // barrido lateral con el que entra y sale la disciplina y el año
   wipeEase: "power3.inOut",
-  fill: 0.25,            // inercia con la que el relleno blanco pasa de una fila a otra
+  fill: 0.06,            // inercia con la que el relleno blanco pasa de una fila a otra (menos = más retardado)
+  fillPad: 6,            // píxeles que el relleno sobresale por los lados del texto
   fillReveal: 0.4,       // barrido de entrada y salida del relleno
 };
 
@@ -223,9 +224,10 @@ function initMenu() {
   let fillY = 0;
   let fillTarget = 0;
   const placeFill = () => {
-    const box = list.getBoundingClientRect();
-    fill.style.left = `${box.left - 6}px`;
-    fill.style.width = `${box.width + 6}px`;
+    // De la disciplina (izquierda) al año (derecha): de margen a margen, más el respiro
+    const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin"));
+    fill.style.left = `${margin - MENU.fillPad}px`;
+    fill.style.width = `${window.innerWidth - (margin - MENU.fillPad) * 2}px`;
   };
 
   const sweepFill = (on) => {
@@ -352,7 +354,11 @@ function initMenu() {
       toggle.focus();
     }
   });
-  window.addEventListener("resize", () => open && measure());
+  window.addEventListener("resize", () => {
+    if (!open) return;
+    measure();
+    placeFill();
+  });
 }
 
 
