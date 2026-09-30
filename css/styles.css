@@ -189,16 +189,26 @@ html.lenis body {
   transform: translateY(-1.2em);
 }
 
-/* Cabecera: texto blanco que se invierte con lo que tiene detrás */
+/* Cabecera: texto negro sobre una caja blanca ajustada a cada texto */
 .header {
   position: fixed;
   inset: 0 0 auto;
   z-index: 50;
   align-items: start;
   padding-top: var(--margin);
-  color: var(--color-ink);
-  mix-blend-mode: difference;
+  color: var(--color-text);
   pointer-events: none;
+}
+
+/* La caja crece con el relleno y se compensa con el margen negativo para que
+   el texto siga alineado con la grid */
+.header__name .link,
+.header__toggle,
+.header__current,
+.header__sound {
+  padding: 2px 6px;
+  margin: -2px -6px;
+  background: var(--color-bg);
 }
 
 .header a,
@@ -222,8 +232,10 @@ html.lenis body {
   line-height: inherit;
 }
 
+/* Justo debajo de "Works,", con 1 px de solape para que las cajas se toquen */
 .header__current {
-  margin-top: 5px;
+  width: fit-content;
+  margin-top: 1px;
 }
 
 /* Con el menú abierto, el nombre del proyecto deja sitio a la lista */
