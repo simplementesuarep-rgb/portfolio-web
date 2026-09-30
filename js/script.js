@@ -10,6 +10,12 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matc
 const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 const isVirtualScroll = () => document.body.dataset.scroll === "virtual";
 
+// Raíz de la web (script.js vive en /js/), para encontrar los audios desde cualquier página
+const SITE_ROOT = new URL("../", document.currentScript.src);
+
+// Efectos de sonido: no hacen nada hasta que se activa "Sound" (ver initSound)
+const sfx = { tick: () => {} };
+
 // Factor de suavizado por fotograma corregido para que no dependa de los fps
 const smoothing = (factor) => 1 - Math.pow(1 - factor, gsap.ticker.deltaRatio());
 
@@ -321,6 +327,7 @@ function initMenu(transition) {
       return;
     }
     const { index } = rows[k];
+    sfx.tick();
     if (was < 0) {
       fillY = fillFor(rows[k]);
       sweepFill(true);
@@ -478,6 +485,7 @@ function initCursorTag() {
     type.hidden = !type.textContent;
     if (visible) return;
     visible = true;
+    sfx.tick();
     position.x = pointer.x;
     position.y = pointer.y;
     gsap.fromTo(lines, { clipPath: "inset(0% 100% 0% 0%)" }, {
@@ -584,6 +592,7 @@ function initTransition() {
   };
 
   const leave = (href) => {
+    document.dispatchEvent(new CustomEvent("page:leave"));
     lenis?.stop();
     virtual.locked = true;
     if (reducedMotion) {
@@ -709,6 +718,7 @@ function initLinks() {
       // Si el barrido anterior no ha terminado, se deja acabar en vez de reiniciarlo
       if (event.pointerType !== "mouse" || busy) return;
       busy = true;
+      sfx.tick();
       gsap.timeline({ onComplete: () => (busy = false) })
         .to(text, { clipPath: "inset(0% 0% 0% 100%)", duration: LINK.out, ease: LINK.outEase })
         .set(text, { clipPath: "inset(0% 100% 0% 0%)" })
@@ -719,31 +729,111 @@ function initLinks() {
 
 
 /* ==========================================================================
-   8. Sound
-   Botón de la cabecera: por ahora solo cambia de estado y se acuerda de él
-   entre páginas; el audio llegará con los vídeos.
+   8. Sound (howler.js)
+   "Sound" activa un ambiente en bucle que entra y sale con un fundido, y un
+   clic suave al pasar por los enlaces de la cabecera, las fotos y las filas
+   del menú. El estado y el punto del bucle se guardan al cambiar de página
+   para que el ambiente siga donde iba. Los audios solo se descargan la
+   primera vez que se activa.
+   Nota: el navegador no deja sonar nada hasta el primer clic o tecla en cada
+   página; si llegas con el sonido activado, arranca en cuanto interactúas.
    ========================================================================== */
+
+const SOUND = {
+  volume: 0.5,           // volumen del ambiente
+  fadeIn: 1.5,           // segundos de fundido al activarlo
+  fadeOut: 0.8,          // segundos de fundido al desactivarlo
+  leave: 0.4,            // fundido al salir de la página
+  tick: 0.12,            // volumen del clic
+  tickGap: 70,           // milisegundos mínimos entre clics
+};
 
 function initSound() {
   const button = document.querySelector(".header__sound");
   if (!button) return;
 
   const text = button.querySelector(".link__text");
-  const set = (on) => {
-    button.setAttribute("aria-pressed", String(on));
-    text.textContent = on ? "Sound on" : "Sound";
+  const store = (key, value) => {
     try {
-      sessionStorage.setItem("sound", on ? "1" : "0");
+      sessionStorage.setItem(key, value);
     } catch {}
   };
+  const read = (key) => {
+    try {
+      return sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  };
 
+  const audio = (name) => [`${SITE_ROOT}assets/audio/${name}.webm`, `${SITE_ROOT}assets/audio/${name}.mp3`];
+  const hasHowler = typeof Howl !== "undefined";
+  let ambient = null;
+  let tick = null;
+  let lastTick = 0;
   let on = false;
-  try {
-    on = sessionStorage.getItem("sound") === "1";
-  } catch {}
-  set(on);
 
-  button.addEventListener("click", () => set(button.getAttribute("aria-pressed") !== "true"));
+  const load = () => {
+    if (ambient || !hasHowler) return;
+    ambient = new Howl({ src: audio("ambient"), loop: true, volume: 0 });
+    tick = new Howl({ src: audio("tick"), volume: SOUND.tick });
+    // Si venimos de otra página con el sonido puesto, el bucle sigue donde iba
+    const at = parseFloat(read("sound-at"));
+    if (at > 0) ambient.once("load", () => ambient.seek(at % ambient.duration()));
+  };
+
+  const start = (fade) => {
+    load();
+    if (!ambient) return;
+    ambient.off("fade");
+    if (!ambient.playing()) ambient.play();
+    ambient.fade(ambient.volume(), SOUND.volume, fade * 1000);
+  };
+
+  const stop = (fade) => {
+    if (!ambient) return;
+    ambient.off("fade");
+    ambient.fade(ambient.volume(), 0, fade * 1000);
+    ambient.once("fade", () => {
+      if (!on) ambient.pause();
+    });
+  };
+
+  const set = (value, fade = true) => {
+    on = value;
+    button.setAttribute("aria-pressed", String(on));
+    text.textContent = on ? "Sound on" : "Sound";
+    store("sound", on ? "1" : "0");
+    if (on) start(fade ? SOUND.fadeIn : 0);
+    else stop(fade ? SOUND.fadeOut : 0);
+  };
+
+  sfx.tick = () => {
+    if (!on || !tick) return;
+    const now = performance.now();
+    if (now - lastTick < SOUND.tickGap) return;
+    lastTick = now;
+    tick.rate(0.94 + Math.random() * 0.12); // cada clic suena un poco distinto
+    tick.play();
+  };
+
+  // Al salir de la página: se guarda el punto del bucle y el ambiente se apaga suave
+  document.addEventListener("page:leave", () => {
+    if (!ambient || !on) return;
+    store("sound-at", String(ambient.seek()));
+    ambient.fade(ambient.volume(), 0, SOUND.leave * 1000);
+  });
+  window.addEventListener("pagehide", () => {
+    if (ambient && on && ambient.playing()) store("sound-at", String(ambient.seek()));
+  });
+
+  // Al volver con el botón atrás la página sale de la caché con el ambiente apagado
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted && on) start(SOUND.fadeIn);
+  });
+
+  set(read("sound") === "1");
+  button.addEventListener("click", () => set(!on));
 }
 
 
