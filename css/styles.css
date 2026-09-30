@@ -27,6 +27,10 @@
   --fs-small: 10px;
   --fs-body: 12px;
   --fs-large: 20px;
+
+  /* Cabecera, menú y etiqueta del cursor: más pequeños que el resto */
+  --fs-nav: 9px;
+  --fs-nav-lead: 14px;
   --fs-huge: clamp(24px, 3vw, 42px);
 
   /* Color */
@@ -196,12 +200,12 @@ html.lenis body {
 
 .header__name {
   grid-column: 1;
-  font-size: var(--fs-small);
+  font-size: var(--fs-nav);
 }
 
 .header__works {
   grid-column: 2;
-  font-size: var(--fs-large);
+  font-size: var(--fs-nav-lead);
   line-height: 0.9;
 }
 
@@ -223,7 +227,7 @@ html.lenis body {
   grid-column: 3 / -1;
   display: flex;
   justify-content: space-between;
-  font-size: var(--fs-small);
+  font-size: var(--fs-nav);
 }
 
 /* Menú de trabajos: tapa la página; al pasar por un proyecto sale su foto de fondo */
@@ -255,20 +259,20 @@ html.lenis body {
 .menu__inner {
   position: relative;
   align-items: start;
-  padding-top: calc(var(--margin) + var(--fs-large) * 0.9 + 5px);
+  padding-top: calc(var(--margin) + var(--fs-nav-lead) * 0.9 + 5px);
   color: var(--color-ink);
   mix-blend-mode: difference;
 }
 
 .menu__label {
   grid-column: 1;
-  padding-top: calc(var(--fs-large) * 0.9 - var(--fs-small));
-  font-size: var(--fs-small);
+  padding-top: calc(var(--fs-nav-lead) * 0.9 - var(--fs-nav));
+  font-size: var(--fs-nav);
 }
 
 .menu__list {
   grid-column: 2 / -1;
-  font-size: var(--fs-large);
+  font-size: var(--fs-nav-lead);
   line-height: 0.9;
 }
 
@@ -342,11 +346,11 @@ html.lenis body {
 }
 
 .cursor-tag__type {
-  font-size: var(--fs-body);
+  font-size: var(--fs-nav);
 }
 
 .cursor-tag__title {
-  font-size: var(--fs-large);
+  font-size: var(--fs-nav-lead);
 }
 
 /* Transición entre páginas: 10 franjas que tapan la pantalla al salir y se
@@ -577,7 +581,7 @@ html.lenis body {
   grid-template-rows: auto 1fr auto;
   align-items: end;
   min-height: 100svh;
-  padding-block: calc(var(--margin) + var(--fs-large) * 0.9 + 12px) var(--margin);
+  padding-block: calc(var(--margin) + var(--fs-nav-lead) * 0.9 + 12px) var(--margin);
 }
 
 .about__bio {
@@ -669,7 +673,7 @@ html.lenis body {
   }
 
   .menu__inner {
-    padding-top: calc(var(--margin) + var(--fs-small) + 10px + var(--fs-large) * 0.9 + 5px);
+    padding-top: calc(var(--margin) + var(--fs-nav) + 10px + var(--fs-nav-lead) * 0.9 + 5px);
   }
 
   .menu__list {
