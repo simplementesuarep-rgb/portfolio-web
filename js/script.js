@@ -387,28 +387,7 @@ function initBounce() {
 
 
 /* ==========================================================================
-   8. About: la foto fija del centro cambia con el scroll
-   ========================================================================== */
-
-const ABOUT_IMAGE = { step: 140 }; // píxeles de scroll por foto
-
-function initAboutImage() {
-  const box = document.querySelector(".about__image");
-  if (!box) return;
-
-  const images = [...box.querySelectorAll("img")];
-  const update = () => {
-    const index = Math.floor(window.scrollY / ABOUT_IMAGE.step) % images.length;
-    images.forEach((image, i) => image.classList.toggle("is-active", i === index));
-  };
-
-  window.addEventListener("scroll", update, { passive: true });
-  update();
-}
-
-
-/* ==========================================================================
-   9. Sound
+   8. Sound
    Botón de la cabecera: por ahora solo cambia de estado y se acuerda de él
    entre páginas; el audio llegará con los vídeos.
    ========================================================================== */
@@ -437,7 +416,7 @@ function initSound() {
 
 
 /* ==========================================================================
-   10. Arranque
+   9. Arranque
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -446,7 +425,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   initMenu();
   initCursorTag();
   initBounce();
-  initAboutImage();
   initSound();
   const transition = initTransition();
 

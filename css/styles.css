@@ -226,7 +226,7 @@ html.lenis body {
 .header__infos {
   grid-column: 3 / -1;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   font-size: var(--fs-nav);
 }
 
@@ -574,86 +574,7 @@ html.lenis body {
 
 
 /* ==========================================================================
-   9. About
-   ========================================================================== */
-
-.about__intro {
-  grid-template-rows: auto 1fr auto;
-  align-items: end;
-  min-height: 100svh;
-  padding-block: calc(var(--margin) + var(--fs-nav-lead) * 0.9 + 12px) var(--margin);
-}
-
-.about__bio {
-  grid-column: 3;
-  grid-row: 1;
-  align-self: start;
-  font-size: var(--fs-small);
-}
-
-.about__label {
-  grid-column: 2;
-  align-self: start;
-  font-size: var(--fs-small);
-}
-
-.about__intro .about__label,
-.about__intro .about__list {
-  grid-row: 3;
-}
-
-.about__list {
-  grid-column: 3 / -1;
-  font-size: var(--fs-large);
-  line-height: 0.9;
-}
-
-.about__section {
-  align-items: start;
-  margin-top: 90px;
-}
-
-/* Foto pequeña fija en el centro: cambia mientras se hace scroll */
-.about__image {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 5;
-  width: 145px;
-  height: 145px;
-  translate: -50% -50%;
-  pointer-events: none;
-}
-
-.about__image img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  visibility: hidden;
-}
-
-.about__image img.is-active {
-  visibility: visible;
-}
-
-.about__closing {
-  position: relative;
-  z-index: 6;
-  height: 100svh;
-  margin-top: 90px;
-}
-
-.about__closing img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-
-/* ==========================================================================
-   10. Móvil
+   9. Móvil
    ========================================================================== */
 
 @media (max-width: 767px) {
@@ -722,20 +643,11 @@ html.lenis body {
     width: 90px;
     height: 90px;
   }
-
-  .about__bio,
-  .about__list {
-    grid-column: 2 / -1;
-  }
-
-  .about__label {
-    grid-column: 1;
-  }
 }
 
 
 /* ==========================================================================
-   11. Accesibilidad
+   10. Accesibilidad
    ========================================================================== */
 
 :focus-visible {
