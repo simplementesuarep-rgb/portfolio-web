@@ -383,25 +383,32 @@ html.lenis body {
 
 /* ==========================================================================
    6. Home
-   Foto fija a la izquierda (60 %), carrusel de proyectos a la derecha (40 %)
-   y la presentación debajo, todo en una pantalla.
+   Foto fija a la izquierda (60 %) y carrusel de proyectos a la derecha (40 %),
+   este a toda la altura de la pantalla. La presentación va debajo de la foto
+   fija y por encima del carrusel: las fotos pasan por debajo del texto.
    ========================================================================== */
 
 .home {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 60% 40%;
+  grid-template-rows: 1fr auto;
   height: 100svh;
 }
 
+/* El contenedor no cuenta: la foto y el carrusel son hijos directos de la grid */
 .home__top {
-  display: grid;
-  flex: 1;
-  grid-template-columns: 60% 40%;
-  min-height: 0;
+  display: contents;
 }
 
 .home__hero {
+  grid-column: 1;
+  grid-row: 1;
   overflow: hidden;
+}
+
+.home .carousel {
+  grid-column: 2;
+  grid-row: 1 / -1;
 }
 
 .home__hero img {
@@ -411,8 +418,15 @@ html.lenis body {
 }
 
 .home__description {
+  position: relative;
+  z-index: 2;
+  grid-column: 1 / -1;
+  grid-row: 2;
   padding-block: var(--margin);
   font-size: var(--fs-large);
+  color: var(--color-ink);
+  mix-blend-mode: difference;
+  pointer-events: none;
 }
 
 .home__description p {
@@ -605,12 +619,16 @@ html.lenis body {
     display: none;
   }
 
-  .home__top {
+  .home {
     grid-template-columns: 1fr;
   }
 
   .home__hero {
     display: none;
+  }
+
+  .home .carousel {
+    grid-column: 1;
   }
 
   .home__description p {
