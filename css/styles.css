@@ -45,6 +45,7 @@
   --color-bg: #fff;
   --color-text: #000;
   --color-tag: #fff; /* fondo de la etiqueta del cursor */
+  --color-muted: #c4c4c4; /* el nombre del pie mientras está separado */
   --color-ink: #fff; /* se usa con mix-blend-mode: difference */
 
   /* Movimiento */
@@ -639,18 +640,52 @@ html.lenis body {
   gap: var(--margin);
   height: 100svh;
   padding: var(--margin);
+  /* Abajo queda sitio para la fila del nombre y las redes */
+  padding-bottom: calc(var(--margin) * 2 + var(--fs-huge));
   overflow: hidden;
 }
 
-.footer__mail {
+/* LinkedIn e Instagram: en las esquinas, en la misma línea que el nombre;
+   entran con un barrido cuando el nombre se cierra (script.js) */
+.footer__social {
+  position: absolute;
+  bottom: var(--margin);
+  font-size: var(--fs-small);
+  line-height: 1;
+  text-transform: uppercase;
+  clip-path: inset(0 100% 0 0);
+}
+
+.footer__social--start {
+  left: var(--margin);
+}
+
+.footer__social--end {
+  right: var(--margin);
+}
+
+/* Nombre del pie (solo en los proyectos): mientras se hace scroll, sus dos
+   mitades esperan en las esquinas de abajo en gris; al llegar al final se
+   juntan en el centro y se vuelven negras (script.js) */
+.signature {
+  position: fixed;
+  right: 0;
+  bottom: var(--margin);
+  left: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: space-between;
+  padding-inline: var(--margin);
   font-size: var(--fs-huge);
   line-height: 0.75;
   text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-muted);
+  pointer-events: none;
 }
 
-.footer__based {
-  margin-left: auto;
-  font-size: var(--fs-small);
+.signature__part {
+  will-change: transform;
 }
 
 /* Cuadrado que rebota por el footer y cambia de foto en cada choque */
@@ -742,6 +777,11 @@ html.lenis body {
   .footer {
     flex-direction: column;
     align-items: flex-start;
+    padding-bottom: calc(var(--margin) * 3 + var(--fs-huge) * 2);
+  }
+
+  .footer__social {
+    bottom: calc(var(--margin) * 2 + var(--fs-huge));
   }
 
   .bounce {

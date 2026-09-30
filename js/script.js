@@ -805,6 +805,74 @@ function initBounce() {
 
 
 /* ==========================================================================
+   Nombre del pie (solo en los proyectos, donde el scroll tiene final)
+   Mientras bajas, "Simplemente" y "Suarep" esperan en las esquinas de abajo en
+   gris. Al llegar al pie se deslizan hacia el centro al ritmo del scroll hasta
+   juntarse en una sola palabra negra. Cuando se cierra, LinkedIn e Instagram
+   entran en las esquinas con el barrido lateral de la web; si vuelves a subir,
+   salen y el nombre se separa de nuevo.
+   ========================================================================== */
+
+const SIGNATURE = {
+  show: 0.98,            // progreso a partir del cual entran las redes
+  hide: 0.9,             // y por debajo del cual salen (margen para que no parpadeen)
+  wipe: 0.45,            // barrido de las redes
+  stagger: 0.08,
+  ease: "power3.inOut",
+};
+
+function initSignature() {
+  const sign = document.querySelector(".signature");
+  const footer = document.querySelector(".footer");
+  if (!sign || !footer) return;
+
+  const [start, end] = sign.querySelectorAll(".signature__part");
+  const socials = [...footer.querySelectorAll(".footer__social")];
+  const cover = footer.previousElementSibling; // lo que tapa el pie hasta llegar al final
+  const styles = getComputedStyle(document.documentElement);
+  const color = gsap.utils.interpolate(styles.getPropertyValue("--color-muted").trim(), styles.getPropertyValue("--color-text").trim());
+  let shown = false;
+
+  const wipe = (on) => {
+    shown = on;
+    const clipPath = on ? "inset(0% 0% 0% 0%)" : "inset(0% 0% 0% 100%)";
+    if (reducedMotion) {
+      gsap.set(socials, { clipPath: on ? clipPath : "inset(0% 100% 0% 0%)" });
+      return;
+    }
+    if (on) {
+      sfx.play("soft2");
+      gsap.fromTo(socials, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath, duration: SIGNATURE.wipe, ease: SIGNATURE.ease, stagger: SIGNATURE.stagger, overwrite: true });
+    } else {
+      gsap.to(socials, { clipPath, duration: SIGNATURE.wipe, ease: SIGNATURE.ease, stagger: SIGNATURE.stagger, overwrite: true });
+    }
+  };
+
+  const update = () => {
+    // 0 mientras el contenido tapa el pie, 1 cuando el pie está entero a la vista
+    const covered = cover ? cover.getBoundingClientRect().bottom : 0;
+    const progress = gsap.utils.clamp(0, 1, 1 - covered / window.innerHeight);
+    const eased = progress * progress * (3 - 2 * progress);
+
+    // Dónde queda cada mitad con la palabra cerrada y centrada
+    const width = sign.clientWidth;
+    const margin = parseFloat(getComputedStyle(sign).paddingLeft);
+    const joined = (width - start.offsetWidth - end.offsetWidth) / 2;
+    const startX = (joined - margin) * eased;
+    const endX = (joined + start.offsetWidth - (width - margin - end.offsetWidth)) * eased;
+    start.style.transform = `translate3d(${startX}px, 0, 0)`;
+    end.style.transform = `translate3d(${endX}px, 0, 0)`;
+    sign.style.color = color(eased);
+
+    if (!shown && progress >= SIGNATURE.show) wipe(true);
+    else if (shown && progress < SIGNATURE.hide) wipe(false);
+  };
+
+  gsap.ticker.add(update);
+}
+
+
+/* ==========================================================================
    Hover de las cajas de la cabecera
    El mismo barrido que la disciplina del menú: la caja blanca se queda quieta
    y el texto se recorta hacia la derecha hasta desaparecer y vuelve a entrar
@@ -1005,6 +1073,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCursorTag();
   initDiaphragm();
   initBounce();
+  initSignature();
   initSound();
   initLinks();
   const transition = initTransition();
