@@ -212,6 +212,11 @@ html.lenis body {
   margin-top: 5px;
 }
 
+/* Con el menú abierto, el nombre del proyecto deja sitio a la lista */
+.header__toggle[aria-expanded="true"] + .header__current {
+  visibility: hidden;
+}
+
 .header__infos {
   grid-column: 3 / -1;
   display: flex;
@@ -509,6 +514,8 @@ html.lenis body {
   bottom: 0;
   z-index: 0;
   display: flex;
+  flex-wrap: wrap;
+  align-content: flex-end;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--margin);
@@ -524,7 +531,7 @@ html.lenis body {
 }
 
 .footer__based {
-  flex-shrink: 0;
+  margin-left: auto;
   font-size: var(--fs-small);
 }
 
