@@ -233,10 +233,33 @@ html.lenis body {
   line-height: inherit;
 }
 
+/* Las dos palabras comparten celda: la caja tiene el ancho de la mayor y no
+   salta al cambiar. Se ve una a la vez (script.js las desliza). */
+.header__toggle-inner {
+  display: grid;
+  overflow: hidden;
+  padding-block: 2px;
+  margin-block: -2px;
+}
+
+.header__toggle-text {
+  grid-area: 1 / 1;
+  text-align: left;
+}
+
 /* Justo debajo de "Works,", con 1 px de solape para que las cajas se toquen */
 .header__current {
   width: fit-content;
   margin-top: 1px;
+  /* Al cerrar el menú, espera a que casi haya terminado de cerrarse (MENU.fade
+     en script.js) para volver, y así no se solapa con la lista */
+  transition: opacity 0.4s 0.7s;
+}
+
+/* Con el menú abierto, el nombre del proyecto se desvanece enseguida y deja sitio a la lista */
+.header__toggle[aria-expanded="true"] + .header__current {
+  opacity: 0;
+  transition-delay: 0s;
 }
 
 .header__infos {
@@ -244,6 +267,100 @@ html.lenis body {
   display: flex;
   justify-content: flex-end;
   font-size: var(--fs-nav);
+}
+
+/* Menú de trabajos: tapa la página (script.js lo muestra y lo oculta). Detrás va
+   la foto del proyecto señalado, con velo blanco y desenfoque. */
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  visibility: hidden;
+  background: var(--color-bg);
+}
+
+.menu__image,
+.menu__image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.menu__image img {
+  object-fit: cover;
+  object-position: center 25%;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.menu__image img.is-active {
+  opacity: 1;
+}
+
+.menu__image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(255 255 255 / 0.5);
+  backdrop-filter: blur(5px);
+}
+
+.menu__inner {
+  position: relative;
+  padding-top: calc(var(--margin) + var(--fs-nav-lead) * 0.9 + 5px);
+  color: var(--color-ink);
+  mix-blend-mode: difference;
+}
+
+.menu__list {
+  grid-column: 2 / -1;
+  font-size: var(--fs-nav-lead);
+  line-height: 0.9;
+}
+
+/* Cada fila es una máscara: el texto sube al abrir y se desplaza al acercar el ratón */
+.menu__item {
+  overflow: hidden;
+  padding-top: 5px;
+  will-change: transform;
+}
+
+.menu__item a {
+  display: inline-block;
+}
+
+/* Disciplina (izquierda) y año (derecha): siguen al ratón en vertical (script.js).
+   Cada uno tiene dos textos apilados para fundir el viejo con el nuevo. */
+.menu__label,
+.menu__year {
+  position: absolute;
+  top: 0;
+  display: grid;
+  height: 23px;
+  align-items: center;
+  font-size: var(--fs-nav);
+  pointer-events: none;
+  will-change: transform, clip-path;
+}
+
+.menu__label {
+  left: var(--margin);
+  font-style: italic;
+}
+
+.menu__year {
+  right: var(--margin);
+}
+
+.menu__type {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.menu__year .menu__type {
+  justify-self: end;
 }
 
 /* Tarjeta de proyecto: marco fijo, foto recortada y ampliada que se mueve dentro */
@@ -547,134 +664,7 @@ html.lenis body {
 
 
 /* ==========================================================================
-   9. Works: lista de proyectos en bucle
-   Pantalla completa sin scroll nativo. La foto del proyecto activo hace de
-   fondo y la lista pasa por el centro: el proyecto activo muestra su título
-   en cursiva, su número a la izquierda y su año a la derecha; los demás se
-   ven como una fila pequeña que se apaga con la distancia (script.js).
-   ========================================================================== */
-
-.archive {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  color: var(--color-bg);
-  background: var(--color-text);
-}
-
-.archive__bg,
-.archive__bg img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.archive__bg img {
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.9s ease;
-}
-
-.archive__bg img.is-active {
-  opacity: 1;
-}
-
-/* Velo oscuro para que el texto blanco se lea sobre cualquier foto */
-.archive__bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgb(0 0 0 / 0.35);
-}
-
-/* Sin JS, la lista es una lista de enlaces normal; con JS solo la leen los
-   lectores de pantalla (la lista visible la dibuja script.js) */
-.archive__index {
-  position: relative;
-  padding: calc(var(--margin) * 4) var(--margin) var(--margin);
-  font-size: var(--fs-body);
-  line-height: 1.6;
-}
-
-.js .archive__index {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  padding: 0;
-}
-
-.archive__stage {
-  position: absolute;
-  inset: 0;
-  cursor: pointer;
-  touch-action: none;
-}
-
-.archive__row {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 0;
-  will-change: transform, opacity;
-}
-
-/* Todo lo de una fila cuelga de su línea central */
-.archive__num,
-.archive__name,
-.archive__year,
-.archive__title,
-.archive__kind {
-  position: absolute;
-  top: 0;
-  white-space: nowrap;
-  transform: translateY(-50%);
-}
-
-.archive__num,
-.archive__name,
-.archive__year {
-  font-size: var(--fs-body);
-}
-
-/* Número a la izquierda del centro y nombre a la derecha, con una calle en medio.
-   El número viaja hasta el borde izquierdo y el año hasta el derecho. */
-.archive__num {
-  right: calc(50% + var(--gutter) * 2);
-}
-
-.archive__name {
-  left: calc(50% + var(--gutter) * 2);
-}
-
-.archive__year {
-  left: calc(50% + var(--gutter) * 2);
-  opacity: 0;
-}
-
-.archive__title,
-.archive__kind {
-  left: 50%;
-  translate: -50% 0;
-  opacity: 0;
-  font-style: italic;
-}
-
-.archive__title {
-  font-size: var(--fs-large);
-}
-
-.archive__kind {
-  margin-top: 30px;
-  font-size: var(--fs-nav);
-}
-
-
-/* ==========================================================================
-   10. Móvil
+   9. Móvil
    ========================================================================== */
 
 @media (max-width: 767px) {
@@ -685,6 +675,19 @@ html.lenis body {
 
   .header__infos {
     grid-column: 3 / -1;
+  }
+
+  .menu__inner {
+    padding-top: calc(var(--margin) + var(--fs-nav) + 10px + var(--fs-nav-lead) * 0.9 + 5px);
+  }
+
+  .menu__list {
+    grid-column: 1 / -1;
+  }
+
+  .menu__label,
+  .menu__year {
+    display: none;
   }
 
   .header__works {
@@ -739,7 +742,7 @@ html.lenis body {
 
 
 /* ==========================================================================
-   11. Accesibilidad
+   10. Accesibilidad
    ========================================================================== */
 
 :focus-visible {

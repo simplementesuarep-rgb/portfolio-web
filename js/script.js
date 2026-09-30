@@ -121,196 +121,203 @@ function initVirtualScroll() {
 
 
 /* ==========================================================================
-   4. Works: lista de proyectos en bucle (works.html)
-   No hay scroll nativo: la rueda, el dedo y las flechas mueven la lista, que
-   da vueltas sin final. El proyecto que pasa por el centro es el activo: su
-   foto pasa a ser el fondo, su título aparece en cursiva, su número viaja al
-   borde izquierdo y su año al derecho. Al soltar, la lista encaja en una fila.
+   4. Menú de trabajos
+   "Works," abre la lista de proyectos a pantalla completa. Detrás va la foto
+   del proyecto señalado, con un velo blanco y desenfoque. Con el ratón sobre
+   la lista pasan tres cosas, todas con inercia para que se sientan suaves:
+   la disciplina (izquierda) y el año (derecha) siguen al ratón en vertical,
+   y las filas cercanas al puntero se desplazan hacia la derecha.
    ========================================================================== */
 
-const ARCHIVE = {
-  row: 24,        // píxeles entre filas
-  gap: 46,        // píxeles extra alrededor del activo, para su título
-  reach: 5,       // filas visibles a cada lado del centro
-  wheel: 0.0025,  // filas por unidad de rueda
-  touch: 0.008,   // filas por píxel de arrastre
-  ease: 0.09,     // suavizado por fotograma
-  snap: 160,      // milisegundos quieto antes de encajar en una fila
+const MENU = {
+  fade: 0.6,             // aparición y cierre del menú
+  fadeEase: "power2.out",
+  stagger: 0.04,         // entrada de las filas, una tras otra
+  label: 0.7,            // "Works," <-> "Close,"
+  labelEase: "power3.inOut",
+  rollOut: 130,          // % que se desplaza la palabra saliente (más de 100 para que no asome)
+  follow: 0.05,          // inercia con la que disciplina y año siguen al ratón
+  indent: 20,            // píxeles que se desplaza la fila más cercana al puntero
+  radius: 30,            // a qué distancia vertical del puntero empieza a notarse
+  indentEase: 0.15,      // inercia del desplazamiento de las filas
+  reveal: 0.2,           // barrido de entrada y salida de disciplina y año
+  typeFade: 0.45,        // fundido entre el texto viejo y el nuevo
 };
 
-const mod = (n, m) => ((n % m) + m) % m;
-const smooth = (t) => t * t * (3 - 2 * t);
+function initMenu() {
+  const toggle = document.querySelector(".header__toggle");
+  const menu = document.querySelector(".menu");
+  if (!toggle || !menu) return;
 
-function initArchive() {
-  const root = document.querySelector(".archive");
-  if (!root) return;
+  const labels = toggle.querySelectorAll(".header__toggle-text");
+  const list = menu.querySelector(".menu__list");
+  const items = [...list.querySelectorAll(".menu__item")];
+  const links = items.map((item) => item.querySelector("a"));
+  const typeBox = menu.querySelector(".menu__label");
+  const yearBox = menu.querySelector(".menu__year");
+  const backdrops = [...menu.querySelectorAll(".menu__image img")];
+  const fade = reducedMotion ? 0 : MENU.typeFade;
 
-  const sources = [...root.querySelectorAll(".archive__index a")];
-  const backdrops = [...root.querySelectorAll(".archive__bg img")];
-  const count = sources.length;
-  if (!count) return;
+  let open = false;
+  let pointerY = 0;
+  let followY = 0;
+  let over = false; // el ratón está sobre la lista
+  let centers = [];
+  const indents = items.map(() => 0);
 
-  const items = sources.map((a) => ({
-    title: a.textContent.trim(),
-    numeral: a.dataset.numeral,
-    type: a.dataset.type,
-    year: a.dataset.year,
-  }));
-
-  const style = getComputedStyle(document.documentElement);
-  const margin = parseFloat(style.getPropertyValue("--margin"));
-  const street = parseFloat(style.getPropertyValue("--gutter")) * 2; // media calle central
-
-  // Las filas se reutilizan: solo hay las visibles y cada una cambia de proyecto al salir de pantalla
-  const stage = document.createElement("div");
-  stage.className = "archive__stage";
-  stage.setAttribute("aria-hidden", "true");
-  root.append(stage);
-
-  const rows = Array.from({ length: ARCHIVE.reach * 2 + 2 }, () => {
-    const el = document.createElement("div");
-    el.className = "archive__row";
-    el.innerHTML =
-      '<span class="archive__num"></span><span class="archive__name"></span>' +
-      '<span class="archive__year"></span><span class="archive__title"></span><span class="archive__kind"></span>';
-    stage.append(el);
-    return {
-      el,
-      num: el.children[0],
-      name: el.children[1],
-      year: el.children[2],
-      title: el.children[3],
-      kind: el.children[4],
-      index: -1,
-      offset: 0,
-      virtual: 0,
-    };
-  });
-
-  // Ancho de cada número y año, para saber cuánto tienen que viajar hasta el borde
-  const numWidth = items.map(() => 24);
-  const yearWidth = items.map(() => 32);
-  document.fonts.ready.then(() => {
-    const probe = rows[0];
-    items.forEach((item, i) => {
-      probe.num.textContent = item.numeral;
-      probe.year.textContent = item.year;
-      numWidth[i] = probe.num.offsetWidth;
-      yearWidth[i] = probe.year.offsetWidth;
-    });
-    probe.index = -1;
-  });
-
-  let target = 0;
-  let current = 0;
-  let active = -1;
-  let timer = 0;
-
-  const nudge = (delta) => {
-    target += delta;
-    clearTimeout(timer);
-    timer = setTimeout(() => (target = Math.round(target)), ARCHIVE.snap);
-  };
-
-  const step = (delta) => {
-    clearTimeout(timer);
-    target = Math.round(target) + delta;
-  };
-
-  const render = () => {
-    const width = window.innerWidth;
-    const half = width / 2;
-    const base = Math.floor(current);
-
-    rows.forEach((row, i) => {
-      const virtualIndex = base - ARCHIVE.reach + i;
-      const d = virtualIndex - current;
-      const ad = Math.abs(d);
-      const idx = mod(virtualIndex, count);
-      const item = items[idx];
-
-      if (row.index !== idx) {
-        row.index = idx;
-        row.num.textContent = item.numeral;
-        row.name.textContent = item.title;
-        row.year.textContent = item.year;
-        row.title.textContent = item.title;
-        row.kind.textContent = item.type;
+  // Cada texto tiene dos capas apiladas: el viejo se funde con el nuevo
+  const swapper = (box) => {
+    const spans = [...box.querySelectorAll(".menu__type")];
+    let active = -1;
+    return (text) => {
+      const current = spans[active];
+      if (current && current.textContent === text) {
+        gsap.to(current, { opacity: 1, duration: fade, overwrite: true });
+        return;
       }
+      const next = spans[(active + 1) % spans.length];
+      next.textContent = text;
+      gsap.to(next, { opacity: 1, duration: fade, overwrite: true });
+      if (current) gsap.to(current, { opacity: 0, duration: fade, overwrite: true });
+      active = spans.indexOf(next);
+    };
+  };
+  const setType = swapper(typeBox);
+  const setYear = swapper(yearBox);
 
-      // Cerca del centro las filas se separan para hacer sitio al título
-      const y = d * ARCHIVE.row + Math.sign(d) * Math.min(ad, 1) * ARCHIVE.gap;
-      const p = smooth(1 - Math.min(ad, 1)); // 1 en el centro, 0 a una fila de distancia
-      const fade = Math.min(1, Math.max(0, 1 - (ad - 0.6) / (ARCHIVE.reach - 0.6)));
+  // Las fotos se cargan la primera vez que se abre el menú
+  let loaded = false;
+  const loadBackdrops = () => {
+    if (loaded) return;
+    loaded = true;
+    backdrops.forEach((image) => (image.src = image.dataset.src));
+  };
 
-      row.offset = y;
-      row.virtual = virtualIndex;
-      row.el.style.transform = `translate3d(0, ${y}px, 0)`;
-      row.el.style.opacity = fade;
+  const showBackdrop = (index) => backdrops.forEach((image, i) => image.classList.toggle("is-active", i === index));
 
-      const numTravel = half - street - margin - numWidth[idx];
-      const yearTravel = half - street - margin - yearWidth[idx];
-      row.num.style.transform = `translate3d(${-numTravel * p}px, -50%, 0)`;
-      row.year.style.transform = `translate3d(${yearTravel * p}px, -50%, 0)`;
-      row.name.style.opacity = Math.max(0, 1 - p * 2.2);
-      row.year.style.opacity = Math.min(1, Math.max(0, (p - 0.35) * 2.5));
-      row.title.style.opacity = row.kind.style.opacity = Math.min(1, Math.max(0, (p - 0.5) * 2.2));
+  const measure = () => {
+    centers = items.map((item) => {
+      const box = item.getBoundingClientRect();
+      return box.top + box.height / 2;
     });
+  };
 
-    const now = mod(Math.round(current), count);
-    if (now !== active) {
-      active = now;
-      backdrops.forEach((image, i) => image.classList.toggle("is-active", i === now));
+  // Disciplina y año entran y salen con un barrido, como la etiqueta del ratón
+  const sweep = (on) => {
+    const boxes = [typeBox, yearBox];
+    gsap.killTweensOf(boxes);
+    if (reducedMotion) {
+      gsap.set(boxes, { clipPath: on ? "inset(0% 0% 0% 0%)" : "inset(0% 100% 0% 0%)" });
+      return;
+    }
+    if (on) {
+      gsap.fromTo(boxes, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: MENU.reveal, ease: "power3.out" });
+    } else {
+      gsap.to(boxes, { clipPath: "inset(0% 0% 0% 100%)", duration: MENU.reveal, ease: "power3.inOut" });
     }
   };
 
-  const open = (index) => sources[index].click();
+  const tick = () => {
+    const follow = reducedMotion ? 1 : smoothing(MENU.follow);
+    followY += (pointerY - followY) * follow;
+    const y = followY - typeBox.offsetHeight / 2;
+    typeBox.style.transform = yearBox.style.transform = `translate3d(0, ${y}px, 0)`;
 
-  ScrollTrigger.observe({
-    target: window,
-    type: "wheel,touch",
-    preventDefault: true,
-    onChangeY: (self) => {
-      const wheel = self.event.type === "wheel";
-      nudge(wheel ? self.deltaY * ARCHIVE.wheel : -self.deltaY * ARCHIVE.touch);
-    },
-  });
-
-  window.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowDown" || event.key === "PageDown") step(1);
-    else if (event.key === "ArrowUp" || event.key === "PageUp") step(-1);
-    else if (event.key === "Enter" && document.activeElement === document.body) open(mod(Math.round(target), count));
-  });
-
-  // Un clic en el proyecto activo lo abre; en otra fila, lleva la lista hasta él
-  stage.addEventListener("click", (event) => {
-    const centre = window.innerHeight / 2;
-    let best = null;
-    rows.forEach((row) => {
-      const distance = Math.abs(event.clientY - (centre + row.offset));
-      if (!best || distance < best.distance) best = { row, distance };
+    const ease = reducedMotion ? 1 : smoothing(MENU.indentEase);
+    items.forEach((item, i) => {
+      const distance = Math.abs(pointerY - centers[i]);
+      const closeness = distance < MENU.radius ? Math.cos((distance / MENU.radius) * (Math.PI / 2)) : 0;
+      indents[i] += ((over ? closeness * MENU.indent : 0) - indents[i]) * ease;
+      item.style.transform = `translate3d(${indents[i]}px, 0, 0)`;
     });
-    if (!best || best.distance > ARCHIVE.row) return;
+  };
 
-    if (Math.abs(best.row.virtual - Math.round(current)) === 0) open(best.row.index);
-    else step(best.row.virtual - Math.round(target));
+  list.addEventListener("pointerenter", (event) => {
+    over = true;
+    pointerY = followY = event.clientY;
+    sweep(true);
+  });
+  list.addEventListener("pointermove", (event) => (pointerY = event.clientY));
+  list.addEventListener("pointerleave", () => {
+    over = false;
+    sweep(false);
+    showBackdrop(0);
   });
 
-  gsap.ticker.add(() => {
-    const k = reducedMotion ? 1 : smoothing(ARCHIVE.ease);
-    current += (target - current) * k;
-    if (Math.abs(target - current) < 0.0005) current = target;
-    render();
+  items.forEach((item, i) => {
+    const hover = () => {
+      showBackdrop(i);
+      setType(links[i].dataset.type || "");
+      setYear(links[i].dataset.year || "");
+    };
+    item.addEventListener("pointerenter", hover);
+    links[i].addEventListener("focus", hover);
   });
-}
 
-// "Close," vuelve a la página desde la que se llegó (o a la home si se entró directamente)
-function initClose() {
-  const close = document.querySelector("[data-close]");
-  if (!close || !document.referrer) return;
+  const set = (value) => {
+    open = value;
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close" : "Works");
+    menu.inert = !open;
+    virtual.locked = open;
 
-  const from = new URL(document.referrer);
-  if (from.origin === window.location.origin && from.pathname !== window.location.pathname) close.href = from.href;
+    // "Works," sube y sale y "Close," entra desde abajo, sin cambiar el ancho de la caja
+    const roll = [{ yPercent: open ? -MENU.rollOut : 0 }, { yPercent: open ? 0 : MENU.rollOut }];
+    labels.forEach((label, i) => {
+      if (reducedMotion) gsap.set(label, roll[i]);
+      else gsap.to(label, { ...roll[i], duration: MENU.label, ease: MENU.labelEase, overwrite: true });
+    });
+
+    if (open) {
+      lenis?.stop();
+      loadBackdrops();
+      showBackdrop(0);
+      measure();
+      gsap.ticker.add(tick);
+    } else {
+      lenis?.start();
+      over = false;
+      sweep(false);
+    }
+
+    if (reducedMotion) {
+      gsap.set(menu, { autoAlpha: open ? 1 : 0 });
+      if (!open) gsap.ticker.remove(tick);
+      return;
+    }
+
+    gsap.to(menu, {
+      autoAlpha: open ? 1 : 0,
+      duration: MENU.fade,
+      ease: MENU.fadeEase,
+      overwrite: true,
+      onComplete: () => {
+        if (!open) gsap.ticker.remove(tick);
+      },
+    });
+    if (open) {
+      gsap.fromTo(links, { yPercent: 110 }, {
+        yPercent: 0,
+        duration: MENU.fade * 1.4,
+        ease: "power4.out",
+        stagger: MENU.stagger,
+        overwrite: true,
+      });
+    }
+  };
+
+  gsap.set(menu, { autoAlpha: 0 });
+  gsap.set(labels[1], { yPercent: MENU.rollOut });
+  gsap.set([typeBox, yearBox], { clipPath: "inset(0% 100% 0% 0%)" });
+
+  toggle.addEventListener("click", () => set(!open));
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && open) {
+      set(false);
+      toggle.focus();
+    }
+  });
+  window.addEventListener("resize", () => open && measure());
 }
 
 
@@ -557,8 +564,7 @@ function initSound() {
 document.addEventListener("DOMContentLoaded", async () => {
   initLenis();
   initVirtualScroll();
-  initArchive();
-  initClose();
+  initMenu();
   initCursorTag();
   initBounce();
   initSound();
