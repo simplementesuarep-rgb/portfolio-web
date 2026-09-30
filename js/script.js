@@ -132,6 +132,7 @@ const MENU = {
   stagger: 0.04,
   label: 0.7,
   labelEase: "power3.inOut",
+  rollOut: 130,    // % que se desplaza la palabra saliente; más de 100 para que no asome por el relleno de la caja
   typeMove: 0.5,   // lo que tarda la disciplina en pasar de una fila a otra
   typeEase: "power3.out",
   typeFade: 0.3,
@@ -155,7 +156,7 @@ function initMenu() {
     toggle.setAttribute("aria-label", open ? "Close" : "Works");
 
     // "Works," sube y sale y "Close," entra desde abajo, sin cambiar el ancho de la caja
-    const roll = [{ yPercent: open ? -100 : 0 }, { yPercent: open ? 0 : 100 }];
+    const roll = [{ yPercent: open ? -MENU.rollOut : 0 }, { yPercent: open ? 0 : MENU.rollOut }];
     labels.forEach((label, i) => {
       if (reducedMotion) gsap.set(label, roll[i]);
       else gsap.to(label, { ...roll[i], duration: MENU.label, ease: MENU.labelEase, overwrite: true });
@@ -183,7 +184,7 @@ function initMenu() {
     }
   };
 
-  gsap.set(labels[1], { yPercent: 100 });
+  gsap.set(labels[1], { yPercent: MENU.rollOut });
   toggle.addEventListener("click", () => set(!open));
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && open) {
