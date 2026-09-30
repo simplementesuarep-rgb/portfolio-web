@@ -751,13 +751,14 @@ function initLinks() {
 
 /* ==========================================================================
    8. Sound (howler.js)
-   "Sound" activa un ambiente en bucle y los efectos de toda la web:
-   - franjas de la transición: un soplo al cerrarse y un acorde al abrirse
-   - hover de cualquier enlace o botón: una gota; clic: un golpe seco
-   - fotos: un roce; filas del menú: un soplo agudo
-   - scroll (carruseles, menú y proyectos): granos al ritmo de la velocidad
-   - rebote del cuadrado del pie: un golpe de madera
-   - activar / desactivar el sonido: dos notas que suben o bajan
+   "Sound" activa un tono de sala en bucle y los efectos de toda la web, con
+   sonidos físicos, secos y cortos de estudio fotográfico, sin notas:
+   - franjas de la transición: un pase de página al cerrarse y un soplo al abrirse
+   - hover de cualquier enlace o botón: la punta de un lápiz; clic: un obturador
+   - fotos: una hoja que se desliza; filas del menú: un tic finísimo
+   - scroll (carruseles, menú y proyectos): el avance de un carrete
+   - rebote del cuadrado del pie: un toque sobre fieltro
+   - activar / desactivar el sonido: obturador completo / un solo golpe
    Todos los sonidos son originales, sintetizados para esta web. Los efectos
    van juntos en un solo archivo (sprite). El estado y el punto del bucle se
    guardan al cambiar de página para que el ambiente siga donde iba.
@@ -766,16 +767,16 @@ function initLinks() {
    ========================================================================== */
 
 const SOUND = {
-  volume: 0.5,           // volumen del ambiente
+  volume: 0.3,           // volumen del ambiente
   fadeIn: 1.5,           // segundos de fundido al activarlo
   fadeOut: 0.8,          // segundos de fundido al desactivarlo
   leave: 0.4,            // fundido al salir de la página
   scrubStep: 70,         // píxeles de scroll entre grano y grano
   gap: 40,               // milisegundos mínimos entre dos veces el mismo efecto
   // Volumen de cada efecto
-  levels: { sweep: 0.35, enter: 0.3, hit: 0.35, soft: 0.25, soft2: 0.3, menu: 0.45, image: 0.4, scrub: 0.22, bounce: 0.3, on: 0.4, off: 0.4 },
+  levels: { sweep: 0.18, enter: 0.14, hit: 0.3, soft: 0.14, soft2: 0.2, menu: 0.16, image: 0.15, scrub: 0.1, bounce: 0.18, on: 0.35, off: 0.3 },
   // Posición de cada efecto dentro de sfx.webm / sfx.mp3 [inicio, duración] en ms
-  sprite: {"sweep":[0,620],"enter":[740,2200],"hit":[3060,140],"soft":[3320,320],"soft2":[3760,320],"menu":[4200,300],"image":[4620,180],"scrub":[4920,60],"bounce":[5100,250],"on":[5470,500],"off":[6090,500]},
+  sprite: {"sweep":[0,500],"enter":[620,700],"hit":[1440,90],"soft":[1650,40],"soft2":[1810,50],"menu":[1980,30],"image":[2130,120],"scrub":[2370,20],"bounce":[2510,60],"on":[2690,140],"off":[2950,60]},
 };
 
 function initSound() {
@@ -814,7 +815,7 @@ function initSound() {
   /* ---- Efectos ---- */
 
   const last = {};
-  const play = (name, { force = false, rate = 0.95 + Math.random() * 0.1, volume = 1 } = {}) => {
+  const play = (name, { force = false, rate = 0.97 + Math.random() * 0.06, volume = 1 } = {}) => {
     if ((!on && !force) || !effects) return;
     const now = performance.now();
     if (now - (last[name] || 0) < SOUND.gap) return;
@@ -833,7 +834,7 @@ function initSound() {
     if (travelled < SOUND.scrubStep) return;
     travelled %= SOUND.scrubStep;
     const speed = Math.min(1, Math.abs(delta) / 40);
-    play("scrub", { rate: 0.85 + speed * 0.5 + Math.random() * 0.1, volume: 0.6 + speed * 0.4 });
+    play("scrub", { rate: 0.95 + speed * 0.15 + Math.random() * 0.05, volume: 0.5 + speed * 0.5 });
   };
 
   // Hover y clic de cualquier enlace o botón. Las fotos y las filas del menú
