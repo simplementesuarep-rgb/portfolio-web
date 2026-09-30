@@ -576,11 +576,10 @@ function initBounce() {
 
 
 /* ==========================================================================
-   Enlaces de la cabecera
-   Al pasar el ratón el texto se renueva con el mismo barrido lateral que la
-   etiqueta del ratón: una copia entra por la izquierda y la vieja sale por la
-   derecha. Al retirar el ratón se repite, para que entre y salga siempre por
-   los mismos lados.
+   Hover de las cajas de la cabecera
+   Al pasar el ratón, una caja negra con el texto en blanco entra con un barrido
+   desde la izquierda, como la etiqueta del ratón, y al retirarlo sale por la
+   derecha. Se aplica al nombre, a "Works,"/"Close," y a "Sound".
    ========================================================================== */
 
 const LINK = { duration: 0.45, ease: "power3.inOut" };
@@ -588,31 +587,29 @@ const LINK = { duration: 0.45, ease: "power3.inOut" };
 function initLinks() {
   if (reducedMotion) return;
 
-  document.querySelectorAll(".link").forEach((link) => {
-    const first = link.querySelector(".link__text");
-    if (!first) return;
+  document.querySelectorAll(".link, .header__toggle").forEach((box) => {
+    const fill = document.createElement("span");
+    fill.className = "link__fill";
+    fill.setAttribute("aria-hidden", "true");
+    box.append(fill);
 
-    const second = document.createElement("span");
-    second.className = "link__copy";
-    second.setAttribute("aria-hidden", "true");
-    second.textContent = first.textContent;
-    first.after(second);
-
-    const layers = [first, second];
-    let shown = 0;
-
-    const swap = (event) => {
-      if (event.pointerType !== "mouse") return;
-      const from = layers[shown];
-      const to = layers[1 - shown];
-      to.textContent = from.textContent;
-      gsap.fromTo(to, { clipPath: "inset(-20% 100% -20% 0%)" }, { clipPath: "inset(-20% 0% -20% 0%)", duration: LINK.duration, ease: LINK.ease, overwrite: true });
-      gsap.fromTo(from, { clipPath: "inset(-20% 0% -20% 0%)" }, { clipPath: "inset(-20% 0% -20% 100%)", duration: LINK.duration, ease: LINK.ease, overwrite: true });
-      shown = 1 - shown;
+    // La capa repite el texto de la caja y lo sigue si cambia ("Works," <-> "Close,", "Sound on")
+    const read = () => (box.matches(".header__toggle") ? `${box.getAttribute("aria-label")},` : box.querySelector(".link__text").textContent);
+    const sync = () => {
+      const text = read();
+      if (fill.textContent !== text) fill.textContent = text;
     };
+    sync();
+    new MutationObserver(sync).observe(box, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["aria-label"] });
 
-    link.addEventListener("pointerenter", swap);
-    link.addEventListener("pointerleave", swap);
+    box.addEventListener("pointerenter", (event) => {
+      if (event.pointerType !== "mouse") return;
+      gsap.fromTo(fill, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: LINK.duration, ease: LINK.ease, overwrite: true });
+    });
+    box.addEventListener("pointerleave", (event) => {
+      if (event.pointerType !== "mouse") return;
+      gsap.to(fill, { clipPath: "inset(0% 0% 0% 100%)", duration: LINK.duration, ease: LINK.ease, overwrite: true });
+    });
   });
 }
 
@@ -627,10 +624,10 @@ function initSound() {
   const button = document.querySelector(".header__sound");
   if (!button) return;
 
+  const text = button.querySelector(".link__text");
   const set = (on) => {
     button.setAttribute("aria-pressed", String(on));
-    // El texto vive en las dos capas del hover (ver initLinks)
-    button.querySelectorAll(".link__text, .link__copy").forEach((layer) => (layer.textContent = on ? "Sound on" : "Sound"));
+    text.textContent = on ? "Sound on" : "Sound";
     try {
       sessionStorage.setItem("sound", on ? "1" : "0");
     } catch {}

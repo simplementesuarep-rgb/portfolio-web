@@ -167,29 +167,36 @@ html.lenis body {
    5. Componentes
    ========================================================================== */
 
-/* Enlace: al pasar el ratón el texto se renueva con un barrido lateral (ver
-   initLinks en script.js). La copia se apila sobre el texto original. */
+/* Caja de la cabecera con hover: encima va una capa negra con el texto en
+   blanco que entra y sale con un barrido lateral (ver initLinks en script.js) */
+.link,
+.header__toggle {
+  position: relative;
+}
+
 .link {
   display: inline-block;
   white-space: nowrap;
 }
 
 .link__inner {
-  position: relative;
   display: inline-block;
   vertical-align: top;
 }
 
-.link__text,
-.link__copy {
+.link__text {
   display: inline-block;
 }
 
-.link__copy {
+.link__fill {
   position: absolute;
-  top: 0;
-  left: 0;
-  clip-path: inset(-20% 100% -20% 0%);
+  inset: 0;
+  padding: 2px 6px; /* igual que las cajas de la cabecera */
+  background: var(--color-text);
+  color: var(--color-bg);
+  white-space: nowrap;
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
 }
 
 /* Cabecera: texto negro sobre una caja blanca ajustada a cada texto */
