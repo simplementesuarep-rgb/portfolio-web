@@ -13,8 +13,9 @@ const isVirtualScroll = () => document.body.dataset.scroll === "virtual";
 // Raíz de la web (script.js vive en /js/), para encontrar los audios desde cualquier página
 const SITE_ROOT = new URL("../", document.currentScript.src);
 
-// Efectos de sonido: no hacen nada hasta que se activa "Sound" (ver initSound)
-const sfx = { tick: () => {} };
+// Efectos de sonido: no hacen nada hasta que se activa "Sound" (ver initSound).
+// sfx.play("nombre") suena una vez; sfx.scrub(píxeles) suena al ritmo del scroll.
+const sfx = { play: () => {}, scrub: () => {} };
 
 // Factor de suavizado por fotograma corregido para que no dependa de los fps
 const smoothing = (factor) => 1 - Math.pow(1 - factor, gsap.ticker.deltaRatio());
@@ -35,6 +36,11 @@ function initLenis() {
     easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
   });
   lenis.on("scroll", ScrollTrigger.update);
+  let lastScroll = 0;
+  lenis.on("scroll", (instance) => {
+    sfx.scrub(instance.scroll - lastScroll);
+    lastScroll = instance.scroll;
+  });
 
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
@@ -122,6 +128,7 @@ function initVirtualScroll() {
     virtual.current += (virtual.target - virtual.current) * k;
     carousels.forEach((carousel) => carousel.render(virtual.current));
     if (Math.abs(virtual.current - before) > 0.1) window.dispatchEvent(new Event("virtualscroll"));
+    sfx.scrub(virtual.current - before);
   });
 }
 
@@ -327,7 +334,7 @@ function initMenu(transition) {
       return;
     }
     const { index } = rows[k];
-    sfx.tick();
+    sfx.play("menu");
     if (was < 0) {
       fillY = fillFor(rows[k]);
       sweepFill(true);
@@ -338,7 +345,9 @@ function initMenu(transition) {
   };
 
   const tick = () => {
+    const before = scroll;
     scroll += (scrollTarget - scroll) * (reducedMotion ? 1 : smoothing(MENU.scrollEase));
+    sfx.scrub(scroll - before);
 
     const follow = reducedMotion ? 1 : smoothing(MENU.follow);
     followY += (pointerY - followY) * follow;
@@ -485,7 +494,7 @@ function initCursorTag() {
     type.hidden = !type.textContent;
     if (visible) return;
     visible = true;
-    sfx.tick();
+    sfx.play("image");
     position.x = pointer.x;
     position.y = pointer.y;
     gsap.fromTo(lines, { clipPath: "inset(0% 100% 0% 0%)" }, {
@@ -559,6 +568,7 @@ function initTransition() {
   if (!strips.length) return { reveal: () => {}, run: (swap, done) => { swap(); done?.(); } };
 
   const reveal = (done, timing = TRANSITION) => {
+    sfx.play("enter");
     if (reducedMotion) {
       gsap.set(strips, { scaleY: 0 });
       done?.();
@@ -577,6 +587,7 @@ function initTransition() {
 
   // Cierra las franjas, hace el cambio con la pantalla tapada y las abre de nuevo
   const run = (swap, done) => {
+    sfx.play("sweep");
     gsap.fromTo(strips, { scaleY: 0 }, {
       scaleY: 1,
       transformOrigin: "50% 0%",
@@ -593,6 +604,7 @@ function initTransition() {
 
   const leave = (href) => {
     document.dispatchEvent(new CustomEvent("page:leave"));
+    sfx.play("sweep");
     lenis?.stop();
     virtual.locked = true;
     if (reducedMotion) {
@@ -663,6 +675,15 @@ function initBounce() {
   place();
   if (reducedMotion) return;
 
+  // Solo suena el choque si el cuadrado está a la vista: el pie va pegado abajo
+  // y el contenido de encima lo tapa hasta que se llega al final
+  const cover = area.previousElementSibling;
+  const inView = () => {
+    const top = cover ? cover.getBoundingClientRect().bottom : 0;
+    const square = box.getBoundingClientRect();
+    return square.bottom > top && square.top < window.innerHeight;
+  };
+
   gsap.ticker.add((time, delta) => {
     const dt = Math.min(delta, 100) / 1000;
     const maxX = area.clientWidth - box.offsetWidth;
@@ -682,6 +703,7 @@ function initBounce() {
       hit = true;
     }
     if (hit) {
+      if (inView()) sfx.play("bounce");
       index = (index + 1) % images.length;
       showImage();
     }
@@ -718,7 +740,6 @@ function initLinks() {
       // Si el barrido anterior no ha terminado, se deja acabar en vez de reiniciarlo
       if (event.pointerType !== "mouse" || busy) return;
       busy = true;
-      sfx.tick();
       gsap.timeline({ onComplete: () => (busy = false) })
         .to(text, { clipPath: "inset(0% 0% 0% 100%)", duration: LINK.out, ease: LINK.outEase })
         .set(text, { clipPath: "inset(0% 100% 0% 0%)" })
@@ -730,11 +751,16 @@ function initLinks() {
 
 /* ==========================================================================
    8. Sound (howler.js)
-   "Sound" activa un ambiente en bucle que entra y sale con un fundido, y un
-   clic suave al pasar por los enlaces de la cabecera, las fotos y las filas
-   del menú. El estado y el punto del bucle se guardan al cambiar de página
-   para que el ambiente siga donde iba. Los audios solo se descargan la
-   primera vez que se activa.
+   "Sound" activa un ambiente en bucle y los efectos de toda la web:
+   - franjas de la transición: un soplo al cerrarse y un acorde al abrirse
+   - hover de cualquier enlace o botón: una gota; clic: un golpe seco
+   - fotos: un roce; filas del menú: un soplo agudo
+   - scroll (carruseles, menú y proyectos): granos al ritmo de la velocidad
+   - rebote del cuadrado del pie: un golpe de madera
+   - activar / desactivar el sonido: dos notas que suben o bajan
+   Todos los sonidos son originales, sintetizados para esta web. Los efectos
+   van juntos en un solo archivo (sprite). El estado y el punto del bucle se
+   guardan al cambiar de página para que el ambiente siga donde iba.
    Nota: el navegador no deja sonar nada hasta el primer clic o tecla en cada
    página; si llegas con el sonido activado, arranca en cuanto interactúas.
    ========================================================================== */
@@ -744,8 +770,12 @@ const SOUND = {
   fadeIn: 1.5,           // segundos de fundido al activarlo
   fadeOut: 0.8,          // segundos de fundido al desactivarlo
   leave: 0.4,            // fundido al salir de la página
-  tick: 0.12,            // volumen del clic
-  tickGap: 70,           // milisegundos mínimos entre clics
+  scrubStep: 70,         // píxeles de scroll entre grano y grano
+  gap: 40,               // milisegundos mínimos entre dos veces el mismo efecto
+  // Volumen de cada efecto
+  levels: { sweep: 0.35, enter: 0.3, hit: 0.35, soft: 0.25, soft2: 0.3, menu: 0.45, image: 0.4, scrub: 0.22, bounce: 0.3, on: 0.4, off: 0.4 },
+  // Posición de cada efecto dentro de sfx.webm / sfx.mp3 [inicio, duración] en ms
+  sprite: {"sweep":[0,620],"enter":[740,2200],"hit":[3060,140],"soft":[3320,320],"soft2":[3760,320],"menu":[4200,300],"image":[4620,180],"scrub":[4920,60],"bounce":[5100,250],"on":[5470,500],"off":[6090,500]},
 };
 
 function initSound() {
@@ -769,18 +799,59 @@ function initSound() {
   const audio = (name) => [`${SITE_ROOT}assets/audio/${name}.webm`, `${SITE_ROOT}assets/audio/${name}.mp3`];
   const hasHowler = typeof Howl !== "undefined";
   let ambient = null;
-  let tick = null;
-  let lastTick = 0;
+  let effects = null;
   let on = false;
 
   const load = () => {
     if (ambient || !hasHowler) return;
     ambient = new Howl({ src: audio("ambient"), loop: true, volume: 0 });
-    tick = new Howl({ src: audio("tick"), volume: SOUND.tick });
+    effects = new Howl({ src: audio("sfx"), sprite: SOUND.sprite });
     // Si venimos de otra página con el sonido puesto, el bucle sigue donde iba
     const at = parseFloat(read("sound-at"));
     if (at > 0) ambient.once("load", () => ambient.seek(at % ambient.duration()));
   };
+
+  /* ---- Efectos ---- */
+
+  const last = {};
+  const play = (name, { force = false, rate = 0.95 + Math.random() * 0.1, volume = 1 } = {}) => {
+    if ((!on && !force) || !effects) return;
+    const now = performance.now();
+    if (now - (last[name] || 0) < SOUND.gap) return;
+    last[name] = now;
+    const id = effects.play(name);
+    effects.volume(SOUND.levels[name] * volume, id);
+    effects.rate(rate, id); // cada vez suena un poco distinto
+  };
+  sfx.play = (name) => play(name);
+
+  // El scroll va soltando granos: más seguidos y más agudos cuanto más rápido
+  let travelled = 0;
+  sfx.scrub = (delta) => {
+    if (!on) return;
+    travelled += Math.abs(delta);
+    if (travelled < SOUND.scrubStep) return;
+    travelled %= SOUND.scrubStep;
+    const speed = Math.min(1, Math.abs(delta) / 40);
+    play("scrub", { rate: 0.85 + speed * 0.5 + Math.random() * 0.1, volume: 0.6 + speed * 0.4 });
+  };
+
+  // Hover y clic de cualquier enlace o botón. Las fotos y las filas del menú
+  // tienen su propio sonido, así que aquí se saltan.
+  const own = "[data-cursor-title], .menu__list a";
+  document.addEventListener("pointerover", (event) => {
+    if (event.pointerType !== "mouse") return;
+    const target = event.target.closest("a, button");
+    if (!target || target.matches(own) || target.contains(event.relatedTarget)) return;
+    play("soft");
+  });
+  document.addEventListener("pointerdown", (event) => {
+    const target = event.target.closest("a, button");
+    if (!target || target === button) return;
+    play("hit");
+  });
+
+  /* ---- Ambiente ---- */
 
   const start = (fade) => {
     load();
@@ -808,15 +879,6 @@ function initSound() {
     else stop(fade ? SOUND.fadeOut : 0);
   };
 
-  sfx.tick = () => {
-    if (!on || !tick) return;
-    const now = performance.now();
-    if (now - lastTick < SOUND.tickGap) return;
-    lastTick = now;
-    tick.rate(0.94 + Math.random() * 0.12); // cada clic suena un poco distinto
-    tick.play();
-  };
-
   // Al salir de la página: se guarda el punto del bucle y el ambiente se apaga suave
   document.addEventListener("page:leave", () => {
     if (!ambient || !on) return;
@@ -833,7 +895,10 @@ function initSound() {
   });
 
   set(read("sound") === "1");
-  button.addEventListener("click", () => set(!on));
+  button.addEventListener("click", () => {
+    set(!on);
+    play(on ? "on" : "off", { force: true, rate: 1 });
+  });
 }
 
 
