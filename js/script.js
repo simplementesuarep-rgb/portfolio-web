@@ -123,7 +123,7 @@ function initVirtualScroll() {
 /* ==========================================================================
    4. Menú de trabajos
    "Works," abre la lista de proyectos a pantalla completa; al pasar por uno
-   se ve su foto de fondo y, a la izquierda, su disciplina.
+   se ve su foto de fondo y, a los lados, su disciplina y su año.
    ========================================================================== */
 
 const MENU = {
@@ -133,9 +133,9 @@ const MENU = {
   label: 0.7,
   labelEase: "power3.inOut",
   rollOut: 130,    // % que se desplaza la palabra saliente; más de 100 para que no asome por el relleno de la caja
-  typeMove: 0.5,   // lo que tarda la disciplina en pasar de una fila a otra
-  typeEase: "power3.out",
-  typeFade: 0.3,
+  typeMove: 0.7,   // lo que tarda la disciplina y el año en pasar de una fila a otra
+  typeEase: "power3.inOut",
+  typeFade: 0.45,  // fundido entre el texto viejo y el nuevo
 };
 
 function initMenu() {
@@ -144,7 +144,8 @@ function initMenu() {
   if (!toggle || !menu) return;
 
   const labels = toggle.querySelectorAll(".header__toggle-text");
-  const type = menu.querySelector(".menu__label");
+  const typeBox = menu.querySelector(".menu__label");
+  const yearBox = menu.querySelector(".menu__year");
   const list = menu.querySelector(".menu__list");
   const links = menu.querySelectorAll(".menu__item a");
   const image = menu.querySelector(".menu__image img");
@@ -193,30 +194,55 @@ function initMenu() {
     }
   });
 
-  // La disciplina del proyecto aparece a la izquierda, a la altura de su fila,
-  // y se desliza de una fila a otra siguiendo al ratón
-  const first = links[0].closest(".menu__item");
-  let typeShown = false;
+  // A la izquierda la disciplina del proyecto y a la derecha su año, a la altura
+  // de su fila. Se deslizan de una fila a otra siguiendo al ratón y, mientras el
+  // ratón esté sobre la lista, no desaparecen: al cambiar de fila el texto viejo
+  // se funde con el nuevo.
+  const fade = reducedMotion ? 0 : MENU.typeFade;
 
-  const showType = (link) => {
-    const text = link.dataset.type;
-    if (!text) return hideType();
-
-    const y = link.closest(".menu__item").getBoundingClientRect().top - first.getBoundingClientRect().top;
-    type.textContent = text;
-    if (reducedMotion || !typeShown) {
-      gsap.killTweensOf(type);
-      gsap.set(type, { y });
-    } else {
-      gsap.to(type, { y, duration: MENU.typeMove, ease: MENU.typeEase, overwrite: "auto" });
-    }
-    gsap.to(type, { opacity: 1, duration: reducedMotion ? 0 : MENU.typeFade, overwrite: "auto" });
-    typeShown = true;
+  const swapper = (box) => {
+    const spans = [...box.querySelectorAll(".menu__type")];
+    let active = -1;
+    return {
+      set(text) {
+        const current = spans[active];
+        if (current && current.textContent === text) {
+          gsap.to(current, { opacity: 1, duration: fade, overwrite: true });
+          return;
+        }
+        const next = spans[(active + 1) % spans.length];
+        next.textContent = text;
+        gsap.to(next, { opacity: 1, duration: fade, overwrite: true });
+        if (current) gsap.to(current, { opacity: 0, duration: fade, overwrite: true });
+        active = spans.indexOf(next);
+      },
+      hide() {
+        spans.forEach((span) => gsap.to(span, { opacity: 0, duration: fade, overwrite: true }));
+      },
+    };
   };
 
-  const hideType = () => {
-    typeShown = false;
-    gsap.to(type, { opacity: 0, duration: reducedMotion ? 0 : MENU.typeFade, overwrite: "auto" });
+  const typeText = swapper(typeBox);
+  const yearText = swapper(yearBox);
+  const first = links[0].closest(".menu__item");
+  let shown = false;
+
+  const showRow = (item) => {
+    const link = item.querySelector("a");
+    const y = item.getBoundingClientRect().top - first.getBoundingClientRect().top;
+
+    if (reducedMotion || !shown) gsap.set([typeBox, yearBox], { y });
+    else gsap.to([typeBox, yearBox], { y, duration: MENU.typeMove, ease: MENU.typeEase, overwrite: "auto" });
+
+    typeText.set(link.dataset.type || "");
+    yearText.set(link.dataset.year || "");
+    shown = true;
+  };
+
+  const hideRows = () => {
+    shown = false;
+    typeText.hide();
+    yearText.hide();
   };
 
   links.forEach((link) => {
@@ -227,11 +253,12 @@ function initMenu() {
       });
       link.addEventListener("pointerleave", () => menu.classList.remove("has-image"));
     }
-    link.addEventListener("pointerenter", () => showType(link));
-    link.addEventListener("focus", () => showType(link));
+    const item = link.closest(".menu__item");
+    item.addEventListener("pointerenter", () => showRow(item));
+    link.addEventListener("focus", () => showRow(item));
   });
-  list.addEventListener("pointerleave", hideType);
-  list.addEventListener("focusout", hideType);
+  list.addEventListener("pointerleave", hideRows);
+  list.addEventListener("focusout", hideRows);
 }
 
 

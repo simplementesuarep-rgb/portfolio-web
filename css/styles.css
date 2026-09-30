@@ -302,18 +302,41 @@ html.lenis body {
   mix-blend-mode: difference;
 }
 
-/* Disciplina del proyecto que tiene el ratón encima; script.js la coloca a
-   la altura de su fila y solo se ve mientras hay una fila señalada */
-.menu__label {
-  grid-column: 1;
+/* Disciplina (izquierda) y año (derecha) del proyecto que tiene el ratón encima;
+   script.js los coloca a la altura de su fila. Cada uno tiene dos textos
+   apilados para fundir el viejo con el nuevo. */
+.menu__label,
+.menu__year {
+  display: grid;
+  grid-row: 1;
   padding-top: calc(var(--fs-nav-lead) * 0.9 - var(--fs-nav));
   font-size: var(--fs-nav);
+  pointer-events: none;
+}
+
+.menu__label {
+  grid-column: 1;
   font-style: italic;
+}
+
+.menu__year {
+  grid-column: 4;
+  justify-self: end;
+}
+
+.menu__type {
+  grid-area: 1 / 1;
+  white-space: nowrap;
   opacity: 0;
+}
+
+.menu__year .menu__type {
+  justify-self: end;
 }
 
 .menu__list {
   grid-column: 2 / -1;
+  grid-row: 1; /* misma fila que la disciplina y el año, que se superponen a sus lados */
   font-size: var(--fs-nav-lead);
   line-height: 0.9;
 }
@@ -659,7 +682,8 @@ html.lenis body {
     grid-column: 1 / -1;
   }
 
-  .menu__label {
+  .menu__label,
+  .menu__year {
     display: none;
   }
 
