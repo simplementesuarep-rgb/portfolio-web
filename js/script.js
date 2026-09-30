@@ -408,7 +408,36 @@ function initAboutImage() {
 
 
 /* ==========================================================================
-   9. Arranque
+   9. Sound
+   Botón de la cabecera: por ahora solo cambia de estado y se acuerda de él
+   entre páginas; el audio llegará con los vídeos.
+   ========================================================================== */
+
+function initSound() {
+  const button = document.querySelector(".header__sound");
+  if (!button) return;
+
+  const text = button.querySelector(".link__text");
+  const set = (on) => {
+    button.setAttribute("aria-pressed", String(on));
+    text.textContent = on ? "Sound on" : "Sound";
+    try {
+      sessionStorage.setItem("sound", on ? "1" : "0");
+    } catch {}
+  };
+
+  let on = false;
+  try {
+    on = sessionStorage.getItem("sound") === "1";
+  } catch {}
+  set(on);
+
+  button.addEventListener("click", () => set(button.getAttribute("aria-pressed") !== "true"));
+}
+
+
+/* ==========================================================================
+   10. Arranque
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -418,6 +447,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCursorTag();
   initBounce();
   initAboutImage();
+  initSound();
   const transition = initTransition();
 
   await document.fonts.ready;
