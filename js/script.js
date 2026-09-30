@@ -186,11 +186,12 @@ function initMenu() {
 /* ==========================================================================
    5. Etiqueta del cursor
    Sobre cada proyecto aparece una etiqueta con su tipo (arriba, pequeño) y
-   su nombre (debajo). Sigue al ratón con inercia y cada línea entra y sale
-   con un barrido de clip-path, una detrás de otra.
+   su nombre (debajo). Cuelga del ratón, abajo a la derecha, y lo sigue con
+   inercia. Cada línea entra y sale con un barrido de clip-path, una detrás
+   de otra.
    ========================================================================== */
 
-const CURSOR = { inertia: 0.1, duration: 0.4, stagger: 0.06, ease: "power3.inOut" };
+const CURSOR = { inertia: 0.1, duration: 0.4, stagger: 0.06, ease: "power3.inOut", offset: 14, edge: 10 };
 
 function initCursorTag() {
   const tag = document.querySelector(".cursor-tag");
@@ -256,7 +257,10 @@ function initCursorTag() {
     const k = smoothing(CURSOR.inertia);
     position.x += (pointer.x - position.x) * k;
     position.y += (pointer.y - position.y) * k;
-    tag.style.transform = `translate3d(${position.x}px, ${position.y}px, 0) translate(-50%, -50%)`;
+    // Cuelga del ratón, abajo a la derecha; junto a un borde se queda dentro de la pantalla
+    const x = Math.min(position.x + CURSOR.offset, window.innerWidth - tag.offsetWidth - CURSOR.edge);
+    const y = Math.min(position.y + CURSOR.offset, window.innerHeight - tag.offsetHeight - CURSOR.edge);
+    tag.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   });
 }
 

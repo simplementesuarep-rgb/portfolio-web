@@ -36,7 +36,7 @@
   /* Color */
   --color-bg: #fff;
   --color-text: #000;
-  --color-tag: #b2b2ac; /* fondo de la etiqueta del cursor */
+  --color-tag: #fff; /* fondo de la etiqueta del cursor */
   --color-ink: #fff; /* se usa con mix-blend-mode: difference */
 
   /* Movimiento */
