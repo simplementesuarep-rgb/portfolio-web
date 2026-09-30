@@ -232,15 +232,30 @@ html.lenis body {
   line-height: inherit;
 }
 
+/* Las dos palabras comparten celda: la caja tiene el ancho de la mayor y no
+   salta al cambiar. Se ve una a la vez (script.js las desliza). */
+.header__toggle-inner {
+  display: grid;
+  overflow: hidden;
+  padding-block: 2px;
+  margin-block: -2px;
+}
+
+.header__toggle-text {
+  grid-area: 1 / 1;
+  text-align: left;
+}
+
 /* Justo debajo de "Works,", con 1 px de solape para que las cajas se toquen */
 .header__current {
   width: fit-content;
   margin-top: 1px;
+  transition: opacity 0.5s;
 }
 
-/* Con el menú abierto, el nombre del proyecto deja sitio a la lista */
+/* Con el menú abierto, el nombre del proyecto se desvanece y deja sitio a la lista */
 .header__toggle[aria-expanded="true"] + .header__current {
-  visibility: hidden;
+  opacity: 0;
 }
 
 .header__infos {

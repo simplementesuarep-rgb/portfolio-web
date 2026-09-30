@@ -126,21 +126,29 @@ function initVirtualScroll() {
    se ve su foto de fondo.
    ========================================================================== */
 
-const MENU = { duration: 0.8, ease: "power4.inOut", stagger: 0.04 };
+const MENU = { duration: 0.8, ease: "power4.inOut", stagger: 0.04, label: 0.7, labelEase: "power3.inOut" };
 
 function initMenu() {
   const toggle = document.querySelector(".header__toggle");
   const menu = document.querySelector(".menu");
   if (!toggle || !menu) return;
 
+  const labels = toggle.querySelectorAll(".header__toggle-text");
   const links = menu.querySelectorAll(".menu__item a");
   const image = menu.querySelector(".menu__image img");
   let open = false;
 
   const set = (value) => {
     open = value;
-    toggle.textContent = open ? "Close," : "Works,";
     toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close" : "Works");
+
+    // "Works," sube y sale y "Close," entra desde abajo, sin cambiar el ancho de la caja
+    const roll = [{ yPercent: open ? -100 : 0 }, { yPercent: open ? 0 : 100 }];
+    labels.forEach((label, i) => {
+      if (reducedMotion) gsap.set(label, roll[i]);
+      else gsap.to(label, { ...roll[i], duration: MENU.label, ease: MENU.labelEase, overwrite: true });
+    });
     menu.inert = !open;
     virtual.locked = open;
     if (open) lenis?.stop();
@@ -164,6 +172,7 @@ function initMenu() {
     }
   };
 
+  gsap.set(labels[1], { yPercent: 100 });
   toggle.addEventListener("click", () => set(!open));
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && open) {
