@@ -28,9 +28,9 @@
   --fs-body: 12px;
   --fs-large: 20px;
 
-  /* Cabecera, menú y etiqueta del cursor: más pequeños que el resto */
-  --fs-nav: 9px;
-  --fs-nav-lead: 14px;
+  /* Cabecera, menú y etiqueta del cursor (se pueden ajustar aparte del resto) */
+  --fs-nav: 10px;
+  --fs-nav-lead: 20px;
   --fs-huge: clamp(24px, 3vw, 42px);
 
   /* Color */
@@ -346,7 +346,7 @@ html.lenis body {
 }
 
 .cursor-tag__type {
-  font-size: var(--fs-nav);
+  font-size: var(--fs-body);
 }
 
 .cursor-tag__title {
