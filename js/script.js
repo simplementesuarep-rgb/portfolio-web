@@ -140,8 +140,10 @@ const MENU = {
   indent: 20,            // píxeles que se desplaza la fila más cercana al puntero
   radius: 30,            // a qué distancia vertical del puntero empieza a notarse
   indentEase: 0.15,      // inercia del desplazamiento de las filas
-  reveal: 0.2,           // barrido de entrada y salida de disciplina y año
-  typeFade: 0.45,        // fundido entre el texto viejo y el nuevo
+  wipe: 0.45,            // barrido lateral con el que entra y sale la disciplina y el año
+  wipeEase: "power3.inOut",
+  fill: 0.25,            // inercia con la que el relleno blanco pasa de una fila a otra
+  fillReveal: 0.4,       // barrido de entrada y salida del relleno
 };
 
 function initMenu() {
@@ -156,7 +158,7 @@ function initMenu() {
   const typeBox = menu.querySelector(".menu__label");
   const yearBox = menu.querySelector(".menu__year");
   const backdrops = [...menu.querySelectorAll(".menu__image img")];
-  const fade = reducedMotion ? 0 : MENU.typeFade;
+  const fill = menu.querySelector(".menu__fill");
 
   let open = false;
   let pointerY = 0;
@@ -165,25 +167,39 @@ function initMenu() {
   let centers = [];
   const indents = items.map(() => 0);
 
-  // Cada texto tiene dos capas apiladas: el viejo se funde con el nuevo
+  // Cada texto tiene dos capas apiladas: la nueva entra con un barrido desde la
+  // izquierda, como el texto del ratón en la home, y la vieja sale por la derecha
   const swapper = (box) => {
     const spans = [...box.querySelectorAll(".menu__type")];
     let active = -1;
-    return (text) => {
-      const current = spans[active];
-      if (current && current.textContent === text) {
-        gsap.to(current, { opacity: 1, duration: fade, overwrite: true });
-        return;
-      }
-      const next = spans[(active + 1) % spans.length];
-      next.textContent = text;
-      gsap.to(next, { opacity: 1, duration: fade, overwrite: true });
-      if (current) gsap.to(current, { opacity: 0, duration: fade, overwrite: true });
-      active = spans.indexOf(next);
+    const wipe = (span, from, to) => {
+      if (reducedMotion) gsap.set(span, { clipPath: to });
+      else gsap.fromTo(span, { clipPath: from }, { clipPath: to, duration: MENU.wipe, ease: MENU.wipeEase, overwrite: true });
+    };
+    return {
+      show(text) {
+        const current = spans[active];
+        if (current && current.textContent === text && current.dataset.shown === "1") return;
+        const next = spans[(active + 1) % spans.length];
+        next.textContent = text;
+        next.dataset.shown = "1";
+        wipe(next, "inset(0% 100% 0% 0%)", "inset(0% 0% 0% 0%)");
+        if (current && current.dataset.shown === "1") {
+          current.dataset.shown = "0";
+          wipe(current, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
+        }
+        active = spans.indexOf(next);
+      },
+      hide() {
+        const current = spans[active];
+        if (!current || current.dataset.shown !== "1") return;
+        current.dataset.shown = "0";
+        wipe(current, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
+      },
     };
   };
-  const setType = swapper(typeBox);
-  const setYear = swapper(yearBox);
+  const type = swapper(typeBox);
+  const year = swapper(yearBox);
 
   // Las fotos se cargan la primera vez que se abre el menú
   let loaded = false;
@@ -202,18 +218,26 @@ function initMenu() {
     });
   };
 
-  // Disciplina y año entran y salen con un barrido, como la etiqueta del ratón
-  const sweep = (on) => {
-    const boxes = [typeBox, yearBox];
-    gsap.killTweensOf(boxes);
+  // Relleno blanco de la fila señalada: entra y sale con un barrido lateral, y
+  // entre filas se desliza con inercia
+  let fillY = 0;
+  let fillTarget = 0;
+  const placeFill = () => {
+    const box = list.getBoundingClientRect();
+    fill.style.left = `${box.left - 6}px`;
+    fill.style.width = `${box.width + 6}px`;
+  };
+
+  const sweepFill = (on) => {
+    gsap.killTweensOf(fill);
     if (reducedMotion) {
-      gsap.set(boxes, { clipPath: on ? "inset(0% 0% 0% 0%)" : "inset(0% 100% 0% 0%)" });
+      gsap.set(fill, { clipPath: on ? "inset(0% 0% 0% 0%)" : "inset(0% 100% 0% 0%)" });
       return;
     }
     if (on) {
-      gsap.fromTo(boxes, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: MENU.reveal, ease: "power3.out" });
+      gsap.fromTo(fill, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: MENU.fillReveal, ease: "power3.out" });
     } else {
-      gsap.to(boxes, { clipPath: "inset(0% 0% 0% 100%)", duration: MENU.reveal, ease: "power3.inOut" });
+      gsap.to(fill, { clipPath: "inset(0% 0% 0% 100%)", duration: MENU.fillReveal, ease: "power3.inOut" });
     }
   };
 
@@ -222,6 +246,9 @@ function initMenu() {
     followY += (pointerY - followY) * follow;
     const y = followY - typeBox.offsetHeight / 2;
     typeBox.style.transform = yearBox.style.transform = `translate3d(0, ${y}px, 0)`;
+
+    fillY += (fillTarget - fillY) * (reducedMotion ? 1 : smoothing(MENU.fill));
+    fill.style.transform = `translate3d(0, ${fillY}px, 0)`;
 
     const ease = reducedMotion ? 1 : smoothing(MENU.indentEase);
     items.forEach((item, i) => {
@@ -235,20 +262,26 @@ function initMenu() {
   list.addEventListener("pointerenter", (event) => {
     over = true;
     pointerY = followY = event.clientY;
-    sweep(true);
+    placeFill();
+    sweepFill(true);
   });
   list.addEventListener("pointermove", (event) => (pointerY = event.clientY));
   list.addEventListener("pointerleave", () => {
     over = false;
-    sweep(false);
+    sweepFill(false);
+    type.hide();
+    year.hide();
     showBackdrop(0);
   });
 
   items.forEach((item, i) => {
     const hover = () => {
       showBackdrop(i);
-      setType(links[i].dataset.type || "");
-      setYear(links[i].dataset.year || "");
+      // La caja (22 px) queda centrada en la línea de texto, que está 2,5 px por debajo del centro de la fila
+      fillTarget = centers[i] - 8.5;
+      if (!over) fillY = fillTarget;
+      type.show(links[i].dataset.type || "");
+      year.show(links[i].dataset.year || "");
     };
     item.addEventListener("pointerenter", hover);
     links[i].addEventListener("focus", hover);
@@ -277,7 +310,9 @@ function initMenu() {
     } else {
       lenis?.start();
       over = false;
-      sweep(false);
+      sweepFill(false);
+      type.hide();
+      year.hide();
     }
 
     if (reducedMotion) {
@@ -308,7 +343,7 @@ function initMenu() {
 
   gsap.set(menu, { autoAlpha: 0 });
   gsap.set(labels[1], { yPercent: MENU.rollOut });
-  gsap.set([typeBox, yearBox], { clipPath: "inset(0% 100% 0% 0%)" });
+  gsap.set(fill, { clipPath: "inset(0% 100% 0% 0%)" });
 
   toggle.addEventListener("click", () => set(!open));
   window.addEventListener("keydown", (event) => {
