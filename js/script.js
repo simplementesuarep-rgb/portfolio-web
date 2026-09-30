@@ -121,144 +121,196 @@ function initVirtualScroll() {
 
 
 /* ==========================================================================
-   4. Menú de trabajos
-   "Works," abre la lista de proyectos a pantalla completa; al pasar por uno
-   se ve su foto de fondo y, a los lados, su disciplina y su año.
+   4. Works: lista de proyectos en bucle (works.html)
+   No hay scroll nativo: la rueda, el dedo y las flechas mueven la lista, que
+   da vueltas sin final. El proyecto que pasa por el centro es el activo: su
+   foto pasa a ser el fondo, su título aparece en cursiva, su número viaja al
+   borde izquierdo y su año al derecho. Al soltar, la lista encaja en una fila.
    ========================================================================== */
 
-const MENU = {
-  duration: 0.8,
-  ease: "power4.inOut",
-  stagger: 0.04,
-  label: 0.7,
-  labelEase: "power3.inOut",
-  rollOut: 130,    // % que se desplaza la palabra saliente; más de 100 para que no asome por el relleno de la caja
-  typeMove: 0.7,   // lo que tarda la disciplina y el año en pasar de una fila a otra
-  typeEase: "power3.inOut",
-  typeFade: 0.45,  // fundido entre el texto viejo y el nuevo
+const ARCHIVE = {
+  row: 24,        // píxeles entre filas
+  gap: 46,        // píxeles extra alrededor del activo, para su título
+  reach: 5,       // filas visibles a cada lado del centro
+  wheel: 0.0025,  // filas por unidad de rueda
+  touch: 0.008,   // filas por píxel de arrastre
+  ease: 0.09,     // suavizado por fotograma
+  snap: 160,      // milisegundos quieto antes de encajar en una fila
 };
 
-function initMenu() {
-  const toggle = document.querySelector(".header__toggle");
-  const menu = document.querySelector(".menu");
-  if (!toggle || !menu) return;
+const mod = (n, m) => ((n % m) + m) % m;
+const smooth = (t) => t * t * (3 - 2 * t);
 
-  const labels = toggle.querySelectorAll(".header__toggle-text");
-  const typeBox = menu.querySelector(".menu__label");
-  const yearBox = menu.querySelector(".menu__year");
-  const list = menu.querySelector(".menu__list");
-  const links = menu.querySelectorAll(".menu__item a");
-  const image = menu.querySelector(".menu__image img");
-  let open = false;
+function initArchive() {
+  const root = document.querySelector(".archive");
+  if (!root) return;
 
-  const set = (value) => {
-    open = value;
-    toggle.setAttribute("aria-expanded", String(open));
-    toggle.setAttribute("aria-label", open ? "Close" : "Works");
+  const sources = [...root.querySelectorAll(".archive__index a")];
+  const backdrops = [...root.querySelectorAll(".archive__bg img")];
+  const count = sources.length;
+  if (!count) return;
 
-    // "Works," sube y sale y "Close," entra desde abajo, sin cambiar el ancho de la caja
-    const roll = [{ yPercent: open ? -MENU.rollOut : 0 }, { yPercent: open ? 0 : MENU.rollOut }];
-    labels.forEach((label, i) => {
-      if (reducedMotion) gsap.set(label, roll[i]);
-      else gsap.to(label, { ...roll[i], duration: MENU.label, ease: MENU.labelEase, overwrite: true });
-    });
-    menu.inert = !open;
-    virtual.locked = open;
-    if (open) lenis?.stop();
-    else lenis?.start();
+  const items = sources.map((a) => ({
+    title: a.textContent.trim(),
+    numeral: a.dataset.numeral,
+    type: a.dataset.type,
+    year: a.dataset.year,
+  }));
 
-    const clip = open ? "inset(0% 0% 0% 0%)" : "inset(0% 0% 100% 0%)";
-    if (reducedMotion) {
-      gsap.set(menu, { clipPath: clip });
-      return;
-    }
-    gsap.to(menu, { clipPath: clip, duration: MENU.duration, ease: MENU.ease, overwrite: true });
-    if (open) {
-      gsap.fromTo(links, { yPercent: 110 }, {
-        yPercent: 0,
-        duration: MENU.duration,
-        ease: "power4.out",
-        stagger: MENU.stagger,
-        delay: MENU.duration * 0.35,
-        overwrite: true,
-      });
-    }
-  };
+  const style = getComputedStyle(document.documentElement);
+  const margin = parseFloat(style.getPropertyValue("--margin"));
+  const street = parseFloat(style.getPropertyValue("--gutter")) * 2; // media calle central
 
-  gsap.set(labels[1], { yPercent: MENU.rollOut });
-  toggle.addEventListener("click", () => set(!open));
-  window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && open) {
-      set(false);
-      toggle.focus();
-    }
-  });
+  // Las filas se reutilizan: solo hay las visibles y cada una cambia de proyecto al salir de pantalla
+  const stage = document.createElement("div");
+  stage.className = "archive__stage";
+  stage.setAttribute("aria-hidden", "true");
+  root.append(stage);
 
-  // A la izquierda la disciplina del proyecto y a la derecha su año, a la altura
-  // de su fila. Se deslizan de una fila a otra siguiendo al ratón y, mientras el
-  // ratón esté sobre la lista, no desaparecen: al cambiar de fila el texto viejo
-  // se funde con el nuevo.
-  const fade = reducedMotion ? 0 : MENU.typeFade;
-
-  const swapper = (box) => {
-    const spans = [...box.querySelectorAll(".menu__type")];
-    let active = -1;
+  const rows = Array.from({ length: ARCHIVE.reach * 2 + 2 }, () => {
+    const el = document.createElement("div");
+    el.className = "archive__row";
+    el.innerHTML =
+      '<span class="archive__num"></span><span class="archive__name"></span>' +
+      '<span class="archive__year"></span><span class="archive__title"></span><span class="archive__kind"></span>';
+    stage.append(el);
     return {
-      set(text) {
-        const current = spans[active];
-        if (current && current.textContent === text) {
-          gsap.to(current, { opacity: 1, duration: fade, overwrite: true });
-          return;
-        }
-        const next = spans[(active + 1) % spans.length];
-        next.textContent = text;
-        gsap.to(next, { opacity: 1, duration: fade, overwrite: true });
-        if (current) gsap.to(current, { opacity: 0, duration: fade, overwrite: true });
-        active = spans.indexOf(next);
-      },
-      hide() {
-        spans.forEach((span) => gsap.to(span, { opacity: 0, duration: fade, overwrite: true }));
-      },
+      el,
+      num: el.children[0],
+      name: el.children[1],
+      year: el.children[2],
+      title: el.children[3],
+      kind: el.children[4],
+      index: -1,
+      offset: 0,
+      virtual: 0,
     };
-  };
-
-  const typeText = swapper(typeBox);
-  const yearText = swapper(yearBox);
-  const first = links[0].closest(".menu__item");
-  let shown = false;
-
-  const showRow = (item) => {
-    const link = item.querySelector("a");
-    const y = item.getBoundingClientRect().top - first.getBoundingClientRect().top;
-
-    if (reducedMotion || !shown) gsap.set([typeBox, yearBox], { y });
-    else gsap.to([typeBox, yearBox], { y, duration: MENU.typeMove, ease: MENU.typeEase, overwrite: "auto" });
-
-    typeText.set(link.dataset.type || "");
-    yearText.set(link.dataset.year || "");
-    shown = true;
-  };
-
-  const hideRows = () => {
-    shown = false;
-    typeText.hide();
-    yearText.hide();
-  };
-
-  links.forEach((link) => {
-    if (link.dataset.image) {
-      link.addEventListener("pointerenter", () => {
-        image.src = link.dataset.image;
-        menu.classList.add("has-image");
-      });
-      link.addEventListener("pointerleave", () => menu.classList.remove("has-image"));
-    }
-    const item = link.closest(".menu__item");
-    item.addEventListener("pointerenter", () => showRow(item));
-    link.addEventListener("focus", () => showRow(item));
   });
-  list.addEventListener("pointerleave", hideRows);
-  list.addEventListener("focusout", hideRows);
+
+  // Ancho de cada número y año, para saber cuánto tienen que viajar hasta el borde
+  const numWidth = items.map(() => 24);
+  const yearWidth = items.map(() => 32);
+  document.fonts.ready.then(() => {
+    const probe = rows[0];
+    items.forEach((item, i) => {
+      probe.num.textContent = item.numeral;
+      probe.year.textContent = item.year;
+      numWidth[i] = probe.num.offsetWidth;
+      yearWidth[i] = probe.year.offsetWidth;
+    });
+    probe.index = -1;
+  });
+
+  let target = 0;
+  let current = 0;
+  let active = -1;
+  let timer = 0;
+
+  const nudge = (delta) => {
+    target += delta;
+    clearTimeout(timer);
+    timer = setTimeout(() => (target = Math.round(target)), ARCHIVE.snap);
+  };
+
+  const step = (delta) => {
+    clearTimeout(timer);
+    target = Math.round(target) + delta;
+  };
+
+  const render = () => {
+    const width = window.innerWidth;
+    const half = width / 2;
+    const base = Math.floor(current);
+
+    rows.forEach((row, i) => {
+      const virtualIndex = base - ARCHIVE.reach + i;
+      const d = virtualIndex - current;
+      const ad = Math.abs(d);
+      const idx = mod(virtualIndex, count);
+      const item = items[idx];
+
+      if (row.index !== idx) {
+        row.index = idx;
+        row.num.textContent = item.numeral;
+        row.name.textContent = item.title;
+        row.year.textContent = item.year;
+        row.title.textContent = item.title;
+        row.kind.textContent = item.type;
+      }
+
+      // Cerca del centro las filas se separan para hacer sitio al título
+      const y = d * ARCHIVE.row + Math.sign(d) * Math.min(ad, 1) * ARCHIVE.gap;
+      const p = smooth(1 - Math.min(ad, 1)); // 1 en el centro, 0 a una fila de distancia
+      const fade = Math.min(1, Math.max(0, 1 - (ad - 0.6) / (ARCHIVE.reach - 0.6)));
+
+      row.offset = y;
+      row.virtual = virtualIndex;
+      row.el.style.transform = `translate3d(0, ${y}px, 0)`;
+      row.el.style.opacity = fade;
+
+      const numTravel = half - street - margin - numWidth[idx];
+      const yearTravel = half - street - margin - yearWidth[idx];
+      row.num.style.transform = `translate3d(${-numTravel * p}px, -50%, 0)`;
+      row.year.style.transform = `translate3d(${yearTravel * p}px, -50%, 0)`;
+      row.name.style.opacity = Math.max(0, 1 - p * 2.2);
+      row.year.style.opacity = Math.min(1, Math.max(0, (p - 0.35) * 2.5));
+      row.title.style.opacity = row.kind.style.opacity = Math.min(1, Math.max(0, (p - 0.5) * 2.2));
+    });
+
+    const now = mod(Math.round(current), count);
+    if (now !== active) {
+      active = now;
+      backdrops.forEach((image, i) => image.classList.toggle("is-active", i === now));
+    }
+  };
+
+  const open = (index) => sources[index].click();
+
+  ScrollTrigger.observe({
+    target: window,
+    type: "wheel,touch",
+    preventDefault: true,
+    onChangeY: (self) => {
+      const wheel = self.event.type === "wheel";
+      nudge(wheel ? self.deltaY * ARCHIVE.wheel : -self.deltaY * ARCHIVE.touch);
+    },
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" || event.key === "PageDown") step(1);
+    else if (event.key === "ArrowUp" || event.key === "PageUp") step(-1);
+    else if (event.key === "Enter" && document.activeElement === document.body) open(mod(Math.round(target), count));
+  });
+
+  // Un clic en el proyecto activo lo abre; en otra fila, lleva la lista hasta él
+  stage.addEventListener("click", (event) => {
+    const centre = window.innerHeight / 2;
+    let best = null;
+    rows.forEach((row) => {
+      const distance = Math.abs(event.clientY - (centre + row.offset));
+      if (!best || distance < best.distance) best = { row, distance };
+    });
+    if (!best || best.distance > ARCHIVE.row) return;
+
+    if (Math.abs(best.row.virtual - Math.round(current)) === 0) open(best.row.index);
+    else step(best.row.virtual - Math.round(target));
+  });
+
+  gsap.ticker.add(() => {
+    const k = reducedMotion ? 1 : smoothing(ARCHIVE.ease);
+    current += (target - current) * k;
+    if (Math.abs(target - current) < 0.0005) current = target;
+    render();
+  });
+}
+
+// "Close," vuelve a la página desde la que se llegó (o a la home si se entró directamente)
+function initClose() {
+  const close = document.querySelector("[data-close]");
+  if (!close || !document.referrer) return;
+
+  const from = new URL(document.referrer);
+  if (from.origin === window.location.origin && from.pathname !== window.location.pathname) close.href = from.href;
 }
 
 
@@ -505,7 +557,8 @@ function initSound() {
 document.addEventListener("DOMContentLoaded", async () => {
   initLenis();
   initVirtualScroll();
-  initMenu();
+  initArchive();
+  initClose();
   initCursorTag();
   initBounce();
   initSound();
