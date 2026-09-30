@@ -137,7 +137,7 @@ const MENU = {
   indentEase: 0.15,      // inercia del desplazamiento de las filas
   wipe: 0.45,            // barrido lateral con el que entra y sale la disciplina y el año
   wipeEase: "power3.inOut",
-  fill: 0.06,            // inercia con la que el relleno blanco pasa de una fila a otra (menos = más retardado)
+  fill: 0.05,            // inercia con la que el relleno blanco pasa de una fila a otra (menos = más retardado)
   fillPad: 6,            // píxeles que el relleno sobresale por los lados del texto
   fillReveal: 0.4,       // barrido de entrada y salida del relleno
 };
@@ -433,13 +433,18 @@ function initCursorTag() {
    abajo. Las franjas arrancan tapando (CSS) para que no se vea un salto.
    ========================================================================== */
 
-const TRANSITION = { duration: 0.5, stagger: 0.03, ease: "power4.inOut" };
+const TRANSITION = {
+  duration: 0.5,         // cambio de página
+  stagger: 0.03,
+  ease: "power4.inOut",
+  menu: { duration: 0.3, stagger: 0.015 }, // Works / Close: más rápido, va y vuelve
+};
 
 function initTransition() {
   const strips = document.querySelectorAll(".transition span");
   if (!strips.length) return { reveal: () => {}, run: (swap, done) => { swap(); done?.(); } };
 
-  const reveal = (done) => {
+  const reveal = (done, timing = TRANSITION) => {
     if (reducedMotion) {
       gsap.set(strips, { scaleY: 0 });
       done?.();
@@ -448,9 +453,9 @@ function initTransition() {
     gsap.fromTo(strips, { scaleY: 1 }, {
       scaleY: 0,
       transformOrigin: "50% 100%",
-      duration: TRANSITION.duration,
+      duration: timing.duration,
       ease: TRANSITION.ease,
-      stagger: TRANSITION.stagger,
+      stagger: timing.stagger,
       overwrite: true,
       onComplete: done,
     });
@@ -461,13 +466,13 @@ function initTransition() {
     gsap.fromTo(strips, { scaleY: 0 }, {
       scaleY: 1,
       transformOrigin: "50% 0%",
-      duration: TRANSITION.duration,
+      duration: TRANSITION.menu.duration,
       ease: TRANSITION.ease,
-      stagger: TRANSITION.stagger,
+      stagger: TRANSITION.menu.stagger,
       overwrite: true,
       onComplete: () => {
         swap();
-        reveal(done);
+        reveal(done, TRANSITION.menu);
       },
     });
   };
@@ -571,6 +576,48 @@ function initBounce() {
 
 
 /* ==========================================================================
+   Enlaces de la cabecera
+   Al pasar el ratón el texto se renueva con el mismo barrido lateral que la
+   etiqueta del ratón: una copia entra por la izquierda y la vieja sale por la
+   derecha. Al retirar el ratón se repite, para que entre y salga siempre por
+   los mismos lados.
+   ========================================================================== */
+
+const LINK = { duration: 0.45, ease: "power3.inOut" };
+
+function initLinks() {
+  if (reducedMotion) return;
+
+  document.querySelectorAll(".link").forEach((link) => {
+    const first = link.querySelector(".link__text");
+    if (!first) return;
+
+    const second = document.createElement("span");
+    second.className = "link__copy";
+    second.setAttribute("aria-hidden", "true");
+    second.textContent = first.textContent;
+    first.after(second);
+
+    const layers = [first, second];
+    let shown = 0;
+
+    const swap = (event) => {
+      if (event.pointerType !== "mouse") return;
+      const from = layers[shown];
+      const to = layers[1 - shown];
+      to.textContent = from.textContent;
+      gsap.fromTo(to, { clipPath: "inset(-20% 100% -20% 0%)" }, { clipPath: "inset(-20% 0% -20% 0%)", duration: LINK.duration, ease: LINK.ease, overwrite: true });
+      gsap.fromTo(from, { clipPath: "inset(-20% 0% -20% 0%)" }, { clipPath: "inset(-20% 0% -20% 100%)", duration: LINK.duration, ease: LINK.ease, overwrite: true });
+      shown = 1 - shown;
+    };
+
+    link.addEventListener("pointerenter", swap);
+    link.addEventListener("pointerleave", swap);
+  });
+}
+
+
+/* ==========================================================================
    8. Sound
    Botón de la cabecera: por ahora solo cambia de estado y se acuerda de él
    entre páginas; el audio llegará con los vídeos.
@@ -580,10 +627,10 @@ function initSound() {
   const button = document.querySelector(".header__sound");
   if (!button) return;
 
-  const text = button.querySelector(".link__text");
   const set = (on) => {
     button.setAttribute("aria-pressed", String(on));
-    text.textContent = on ? "Sound on" : "Sound";
+    // El texto vive en las dos capas del hover (ver initLinks)
+    button.querySelectorAll(".link__text, .link__copy").forEach((layer) => (layer.textContent = on ? "Sound on" : "Sound"));
     try {
       sessionStorage.setItem("sound", on ? "1" : "0");
     } catch {}
@@ -609,6 +656,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCursorTag();
   initBounce();
   initSound();
+  initLinks();
   const transition = initTransition();
   initMenu(transition);
 

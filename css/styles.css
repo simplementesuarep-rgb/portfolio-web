@@ -167,26 +167,29 @@ html.lenis body {
    5. Componentes
    ========================================================================== */
 
-/* Enlace: al pasar el ratón el texto sube y entra una copia desde abajo */
+/* Enlace: al pasar el ratón el texto se renueva con un barrido lateral (ver
+   initLinks en script.js). La copia se apila sobre el texto original. */
 .link {
   display: inline-block;
   white-space: nowrap;
 }
 
 .link__inner {
+  position: relative;
   display: inline-block;
-  overflow: hidden;
   vertical-align: top;
 }
 
-.link__text {
+.link__text,
+.link__copy {
   display: inline-block;
-  text-shadow: 0 1.2em currentColor;
-  transition: transform 0.6s var(--ease-out);
 }
 
-.link:hover .link__text {
-  transform: translateY(-1.2em);
+.link__copy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  clip-path: inset(-20% 100% -20% 0%);
 }
 
 /* Cabecera: texto negro sobre una caja blanca ajustada a cada texto */
