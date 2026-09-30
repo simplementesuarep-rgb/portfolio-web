@@ -128,7 +128,9 @@ function initVirtualScroll() {
    repite tantas veces como haga falta para llenar el alto. La fila que queda
    bajo el ratón, sea porque lo mueves o porque la lista pasa por debajo, se
    marca con el relleno blanco, la disciplina (izquierda) y el año (derecha).
-   Todo va con inercia para que se sienta suave.
+   Todo va con inercia para que se sienta suave. "Close," aparta los nombres
+   que pasan a su altura: la lista hace una onda hacia la derecha y lo rodea,
+   para no entrar en un proyecto sin querer al ir a cerrar.
    ========================================================================== */
 
 const MENU = {
@@ -145,6 +147,8 @@ const MENU = {
   wheel: 0.6,            // píxeles que avanza la lista por cada unidad de rueda
   touch: 1.5,            // píxeles que avanza por cada píxel que se arrastra el dedo
   scrollEase: 0.08,      // inercia del scroll de la lista (menos = más suave)
+  repelGap: 30,          // aire entre "Close," y los nombres que lo rodean
+  repelRadius: 80,       // alto de la onda: a qué distancia vertical de "Close," empieza a apartar
 };
 
 function initMenu(transition) {
@@ -224,6 +228,8 @@ function initMenu(transition) {
   let wrap = (value) => value;
   let scroll = 0;
   let scrollTarget = 0;
+  let repelY = 0;     // centro vertical de "Close,"
+  let repelPush = 0;  // cuánto hay que apartar una fila para dejarlo libre
 
   const build = () => {
     list.querySelectorAll(".menu__item--copy").forEach((copy) => copy.remove());
@@ -245,6 +251,18 @@ function initMenu(transition) {
     startY = window.innerHeight / 2 - rowH / 2; // "View all" arranca en el centro
     wrap = gsap.utils.wrap(-rowH, total - rowH);
     active = -1;
+
+    const button = toggle.getBoundingClientRect();
+    repelY = button.top + button.height / 2;
+    repelPush = Math.max(0, button.right - list.getBoundingClientRect().left + MENU.repelGap);
+  };
+
+  // Onda alrededor de "Close,": empuje completo a su altura y se suaviza hasta
+  // cero a MENU.repelRadius de distancia
+  const repel = (center) => {
+    const distance = Math.abs(center - repelY);
+    if (distance >= MENU.repelRadius) return 0;
+    return repelPush * (Math.cos((distance / MENU.repelRadius) * Math.PI) + 1) / 2;
   };
 
   // Lleva la lista, por el camino más corto, hasta dejar la fila i en el centro
@@ -327,10 +345,11 @@ function initMenu(transition) {
       row.y = wrap(startY + k * rowH + scroll);
       if (over && pointerY >= row.y && pointerY < row.y + rowH) under = k;
 
-      const distance = Math.abs(pointerY - (row.y + rowH / 2));
+      const center = row.y + rowH / 2;
+      const distance = Math.abs(pointerY - center);
       const closeness = distance < MENU.radius ? Math.cos((distance / MENU.radius) * (Math.PI / 2)) : 0;
       row.indent += ((over ? closeness * MENU.indent : 0) - row.indent) * ease;
-      row.el.style.transform = `translate3d(${row.indent}px, ${row.y}px, 0)`;
+      row.el.style.transform = `translate3d(${row.indent + repel(center)}px, ${row.y}px, 0)`;
     });
     mark(over ? under : focused);
 
