@@ -251,15 +251,11 @@ html.lenis body {
 .header__current {
   width: fit-content;
   margin-top: 1px;
-  /* Al cerrar el menú, espera a que casi haya terminado de cerrarse (MENU.fade
-     en script.js) para volver, y así no se solapa con la lista */
-  transition: opacity 0.4s 0.7s;
 }
 
-/* Con el menú abierto, el nombre del proyecto se desvanece enseguida y deja sitio a la lista */
+/* Con el menú abierto, el nombre del proyecto se oculta y deja sitio a la lista */
 .header__toggle[aria-expanded="true"] + .header__current {
   opacity: 0;
-  transition-delay: 0s;
 }
 
 .header__infos {

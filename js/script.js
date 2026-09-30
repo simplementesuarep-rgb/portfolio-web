@@ -130,11 +130,6 @@ function initVirtualScroll() {
    ========================================================================== */
 
 const MENU = {
-  fade: 0.6,             // aparición y cierre del menú
-  fadeEase: "power2.out",
-  stagger: 0.04,         // entrada de las filas, una tras otra
-  label: 0.7,            // "Works," <-> "Close,"
-  labelEase: "power3.inOut",
   rollOut: 130,          // % que se desplaza la palabra saliente (más de 100 para que no asome)
   follow: 0.05,          // inercia con la que disciplina y año siguen al ratón
   indent: 20,            // píxeles que se desplaza la fila más cercana al puntero
@@ -147,7 +142,7 @@ const MENU = {
   fillReveal: 0.4,       // barrido de entrada y salida del relleno
 };
 
-function initMenu() {
+function initMenu(transition) {
   const toggle = document.querySelector(".header__toggle");
   const menu = document.querySelector(".menu");
   if (!toggle || !menu) return;
@@ -289,19 +284,19 @@ function initMenu() {
     links[i].addEventListener("focus", hover);
   });
 
-  const set = (value) => {
+  // El menú se abre y se cierra con las mismas franjas que al cambiar de página:
+  // se cierran, el cambio ocurre por detrás y se abren mostrando el resultado
+  const apply = (value) => {
     open = value;
     toggle.setAttribute("aria-expanded", String(open));
     toggle.setAttribute("aria-label", open ? "Close" : "Works");
     menu.inert = !open;
     virtual.locked = open;
 
-    // "Works," sube y sale y "Close," entra desde abajo, sin cambiar el ancho de la caja
-    const roll = [{ yPercent: open ? -MENU.rollOut : 0 }, { yPercent: open ? 0 : MENU.rollOut }];
-    labels.forEach((label, i) => {
-      if (reducedMotion) gsap.set(label, roll[i]);
-      else gsap.to(label, { ...roll[i], duration: MENU.label, ease: MENU.labelEase, overwrite: true });
-    });
+    // "Works," y "Close," se intercambian sin cambiar el ancho de la caja
+    gsap.set(labels[0], { yPercent: open ? -MENU.rollOut : 0 });
+    gsap.set(labels[1], { yPercent: open ? 0 : MENU.rollOut });
+    gsap.set(menu, { autoAlpha: open ? 1 : 0 });
 
     if (open) {
       lenis?.stop();
@@ -312,35 +307,23 @@ function initMenu() {
     } else {
       lenis?.start();
       over = false;
-      sweepFill(false);
+      gsap.killTweensOf(fill);
+      gsap.set(fill, { clipPath: "inset(0% 100% 0% 0%)" });
       type.hide();
       year.hide();
+      gsap.ticker.remove(tick);
     }
+  };
 
+  let busy = false;
+  const set = (value) => {
+    if (busy || value === open) return;
     if (reducedMotion) {
-      gsap.set(menu, { autoAlpha: open ? 1 : 0 });
-      if (!open) gsap.ticker.remove(tick);
+      apply(value);
       return;
     }
-
-    gsap.to(menu, {
-      autoAlpha: open ? 1 : 0,
-      duration: MENU.fade,
-      ease: MENU.fadeEase,
-      overwrite: true,
-      onComplete: () => {
-        if (!open) gsap.ticker.remove(tick);
-      },
-    });
-    if (open) {
-      gsap.fromTo(links, { yPercent: 110 }, {
-        yPercent: 0,
-        duration: MENU.fade * 1.4,
-        ease: "power4.out",
-        stagger: MENU.stagger,
-        overwrite: true,
-      });
-    }
+    busy = true;
+    transition.run(() => apply(value), () => (busy = false));
   };
 
   gsap.set(menu, { autoAlpha: 0 });
@@ -454,11 +437,12 @@ const TRANSITION = { duration: 0.5, stagger: 0.03, ease: "power4.inOut" };
 
 function initTransition() {
   const strips = document.querySelectorAll(".transition span");
-  if (!strips.length) return { reveal: () => {} };
+  if (!strips.length) return { reveal: () => {}, run: (swap, done) => { swap(); done?.(); } };
 
-  const reveal = () => {
+  const reveal = (done) => {
     if (reducedMotion) {
       gsap.set(strips, { scaleY: 0 });
+      done?.();
       return;
     }
     gsap.fromTo(strips, { scaleY: 1 }, {
@@ -468,6 +452,23 @@ function initTransition() {
       ease: TRANSITION.ease,
       stagger: TRANSITION.stagger,
       overwrite: true,
+      onComplete: done,
+    });
+  };
+
+  // Cierra las franjas, hace el cambio con la pantalla tapada y las abre de nuevo
+  const run = (swap, done) => {
+    gsap.fromTo(strips, { scaleY: 0 }, {
+      scaleY: 1,
+      transformOrigin: "50% 0%",
+      duration: TRANSITION.duration,
+      ease: TRANSITION.ease,
+      stagger: TRANSITION.stagger,
+      overwrite: true,
+      onComplete: () => {
+        swap();
+        reveal(done);
+      },
     });
   };
 
@@ -511,7 +512,7 @@ function initTransition() {
     reveal();
   });
 
-  return { reveal };
+  return { reveal, run };
 }
 
 
@@ -605,11 +606,11 @@ function initSound() {
 document.addEventListener("DOMContentLoaded", async () => {
   initLenis();
   initVirtualScroll();
-  initMenu();
   initCursorTag();
   initBounce();
   initSound();
   const transition = initTransition();
+  initMenu(transition);
 
   await document.fonts.ready;
   transition.reveal();
