@@ -594,7 +594,7 @@ html.lenis body {
   display: block;
   height: 100svh;
   overflow: hidden;
-  background: var(--color-text);
+  background: var(--color-bg); /* es lo que asoma cuando el diafragma cierra la foto */
 }
 
 .next__image,

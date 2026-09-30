@@ -551,6 +551,98 @@ function initCursorTag() {
 
 
 /* ==========================================================================
+   Diafragma: hover de las fotos que llevan a un proyecto
+   Al pasar el ratón el marco se cierra un poco desde los cuatro lados, como un
+   diafragma o un reencuadre, y la foto de dentro se acerca despacio y se
+   desplaza siguiendo al ratón. Al salir se abre de nuevo. Se aplica a las
+   tarjetas de la home y del índice y al bloque del siguiente proyecto.
+   ========================================================================== */
+
+const DIAPHRAGM = {
+  inset: 0.05,           // cuánto se cierra el marco (proporción del lado corto)
+  zoom: 1.08,            // cuánto se acerca la foto
+  drift: 0.03,           // cuánto se desplaza siguiendo al ratón (proporción del tamaño)
+  duration: 0.8,         // cierre y apertura del marco
+  ease: "power3.out",
+  follow: 1,             // inercia con la que la foto sigue al ratón (segundos)
+};
+
+function initDiaphragm() {
+  if (!finePointer || reducedMotion) return;
+
+  const hosts = [...document.querySelectorAll(".card[data-cursor-title], .next[data-cursor-title]")];
+  if (!hosts.length) return;
+
+  // En el siguiente proyecto se cierra solo la foto: el texto queda fuera del marco
+  const parts = new Map(
+    hosts.map((host) => {
+      const frame = host.matches(".next") ? host.querySelector(".next__image") : host;
+      const image = host.querySelector("img");
+      const follow = { duration: DIAPHRAGM.follow, ease: "power3.out" };
+      // Se anima un número y el recorte se escribe a mano: el navegador resume
+      // "inset(10px 10px 10px 10px)" como "inset(10px)" y GSAP solo animaría un lado
+      const aperture = { d: 0 };
+      const draw = () => (frame.style.clipPath = `inset(${aperture.d}px)`);
+      return [host, { frame, image, aperture, draw, x: gsap.quickTo(image, "x", follow), y: gsap.quickTo(image, "y", follow) }];
+    })
+  );
+
+  const pointer = { x: -1, y: -1 };
+  let current = null;
+
+  const close = (host) => {
+    const { frame, image, aperture, draw } = parts.get(host);
+    const box = frame.getBoundingClientRect();
+    const d = Math.round(Math.min(box.width, box.height) * DIAPHRAGM.inset);
+    gsap.to(aperture, { d, duration: DIAPHRAGM.duration, ease: DIAPHRAGM.ease, overwrite: true, onUpdate: draw });
+    gsap.to(image, { scale: DIAPHRAGM.zoom, duration: DIAPHRAGM.duration * 1.5, ease: DIAPHRAGM.ease, overwrite: "auto" });
+  };
+
+  const open = (host) => {
+    const part = parts.get(host);
+    gsap.to(part.aperture, { d: 0, duration: DIAPHRAGM.duration, ease: DIAPHRAGM.ease, overwrite: true, onUpdate: part.draw });
+    gsap.to(part.image, { scale: 1, duration: DIAPHRAGM.duration * 1.5, ease: DIAPHRAGM.ease, overwrite: "auto" });
+    part.x(0);
+    part.y(0);
+  };
+
+  // La foto se desplaza hacia donde está el ratón dentro del marco
+  const follow = () => {
+    if (!current) return;
+    const { frame, x, y } = parts.get(current);
+    const box = frame.getBoundingClientRect();
+    x(((pointer.x - box.left) / box.width - 0.5) * box.width * DIAPHRAGM.drift);
+    y(((pointer.y - box.top) / box.height - 0.5) * box.height * DIAPHRAGM.drift);
+  };
+
+  const check = (element) => {
+    const host = element?.closest?.(".card[data-cursor-title], .next[data-cursor-title]") || null;
+    if (host !== current) {
+      if (current) open(current);
+      current = host && parts.has(host) ? host : null;
+      if (current) close(current);
+    }
+    follow();
+  };
+
+  // Igual que la etiqueta del ratón: lo que hay debajo también cambia con el scroll
+  const checkUnderPointer = () => check(document.elementFromPoint(pointer.x, pointer.y));
+
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "mouse") return;
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+    check(event.target);
+  });
+  document.addEventListener("mouseout", (event) => {
+    if (!event.relatedTarget) check(null);
+  });
+  window.addEventListener("virtualscroll", checkUnderPointer);
+  window.addEventListener("scroll", checkUnderPointer, { passive: true });
+}
+
+
+/* ==========================================================================
    6. Transición entre páginas
    Al salir, 10 franjas bajan y tapan la pantalla; al entrar, se retiran hacia
    abajo. Las franjas arrancan tapando (CSS) para que no se vea un salto.
@@ -911,6 +1003,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initLenis();
   initVirtualScroll();
   initCursorTag();
+  initDiaphragm();
   initBounce();
   initSound();
   initLinks();
