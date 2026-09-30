@@ -157,6 +157,7 @@ html.lenis body {
 /* Enlace: al pasar el ratón el texto sube y entra una copia desde abajo */
 .link {
   display: inline-block;
+  white-space: nowrap;
 }
 
 .link__inner {
@@ -642,15 +643,23 @@ html.lenis body {
    ========================================================================== */
 
 @media (max-width: 767px) {
-  .header__works {
-    grid-column: 2 / 4;
+  /* Cabecera en dos filas: nombre y enlaces arriba, "Works," debajo */
+  .header__name {
+    grid-column: 1 / 3;
   }
 
   .header__infos {
-    grid-column: 4;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
+    grid-column: 3 / -1;
+  }
+
+  .header__works {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 10px;
+  }
+
+  .menu__inner {
+    padding-top: calc(var(--margin) + var(--fs-small) + 10px + var(--fs-large) * 0.9 + 5px);
   }
 
   .menu__list {
