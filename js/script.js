@@ -185,30 +185,37 @@ function initMenu() {
 
 /* ==========================================================================
    5. Etiqueta del cursor
-   Sobre los elementos con data-cursor aparece una etiqueta con su texto. Sigue
-   al ratón con inercia y entra y sale con un barrido de clip-path.
+   Sobre cada proyecto aparece una etiqueta con su tipo (arriba, pequeño) y
+   su nombre (debajo). Sigue al ratón con inercia y cada línea entra y sale
+   con un barrido de clip-path, una detrás de otra.
    ========================================================================== */
 
-const CURSOR = { inertia: 0.1, duration: 0.4, ease: "power3.inOut" };
+const CURSOR = { inertia: 0.1, duration: 0.4, stagger: 0.06, ease: "power3.inOut" };
 
 function initCursorTag() {
   const tag = document.querySelector(".cursor-tag");
   if (!tag || !finePointer) return;
 
+  const type = tag.querySelector(".cursor-tag__type");
+  const title = tag.querySelector(".cursor-tag__title");
+  const lines = [type, title];
   const pointer = { x: 0, y: 0 };
   const position = { x: 0, y: 0 };
   let visible = false;
 
-  const show = (text) => {
-    tag.textContent = text;
+  const show = (host) => {
+    type.textContent = host.dataset.cursorType || "";
+    title.textContent = host.dataset.cursorTitle;
+    type.hidden = !type.textContent;
     if (visible) return;
     visible = true;
     position.x = pointer.x;
     position.y = pointer.y;
-    gsap.fromTo(tag, { clipPath: "inset(0% 100% 0% 0%)" }, {
+    gsap.fromTo(lines, { clipPath: "inset(0% 100% 0% 0%)" }, {
       clipPath: "inset(0% 0% 0% 0%)",
       duration: CURSOR.duration,
       ease: CURSOR.ease,
+      stagger: CURSOR.stagger,
       overwrite: true,
     });
   };
@@ -216,12 +223,18 @@ function initCursorTag() {
   const hide = () => {
     if (!visible) return;
     visible = false;
-    gsap.to(tag, { clipPath: "inset(0% 0% 0% 100%)", duration: CURSOR.duration, ease: CURSOR.ease, overwrite: true });
+    gsap.to(lines, {
+      clipPath: "inset(0% 0% 0% 100%)",
+      duration: CURSOR.duration,
+      ease: CURSOR.ease,
+      stagger: CURSOR.stagger,
+      overwrite: true,
+    });
   };
 
   const check = (element) => {
-    const host = element?.closest?.("[data-cursor]");
-    if (host) show(host.dataset.cursor);
+    const host = element?.closest?.("[data-cursor-title]");
+    if (host) show(host);
     else hide();
   };
 
