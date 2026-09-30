@@ -316,15 +316,6 @@ html.lenis body {
   object-fit: cover;
 }
 
-.card__title {
-  position: relative;
-  padding-inline: var(--margin);
-  font-size: var(--fs-large);
-  text-align: center;
-  color: var(--color-ink);
-  mix-blend-mode: difference;
-}
-
 /* Etiqueta que sigue al ratón sobre los proyectos (script.js): el tipo de
    proyecto arriba, más pequeño, y el nombre debajo. Cada línea lleva su
    propio fondo, ajustado al texto. */
