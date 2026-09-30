@@ -577,50 +577,32 @@ function initBounce() {
 
 /* ==========================================================================
    Hover de las cajas de la cabecera
-   La caja blanca se queda quieta y el texto se renueva por los lados: el
-   original sale por la derecha mientras una copia entra por la izquierda, como
-   la etiqueta del ratón. Al retirar el ratón se repite igual. Se aplica al
-   nombre, a "Works,"/"Close," y a "Sound". La copia se hace en cada hover a
-   partir del texto actual, así que nunca queda desfasada.
+   El mismo barrido que la disciplina del menú: la caja blanca se queda quieta
+   y el texto se recorta hacia la derecha hasta desaparecer y vuelve a entrar
+   recortándose desde la izquierda. Se aplica al nombre, a "Works,"/"Close," y
+   a "Sound".
    ========================================================================== */
 
-const LINK = { duration: 0.45, ease: "power3.inOut" };
+const LINK = {
+  out: 0.3,              // el texto sale por la derecha
+  in: 0.45,              // y vuelve a entrar por la izquierda
+  ease: "power3.inOut",
+};
 
 function initLinks() {
   if (reducedMotion) return;
 
   document.querySelectorAll(".link, .header__toggle").forEach((box) => {
-    const inner = box.querySelector(".link__inner, .header__toggle-inner");
-    if (!inner) return;
+    const text = box.querySelector(".link__inner, .header__toggle-inner");
+    if (!text) return;
 
-    let running = null;
-
-    const swap = (event) => {
+    box.addEventListener("pointerenter", (event) => {
       if (event.pointerType !== "mouse") return;
-      running?.progress(1); // si el barrido anterior sigue en marcha, lo termina
-
-      const copy = inner.cloneNode(true);
-      copy.classList.add("link__clone");
-      copy.setAttribute("aria-hidden", "true");
-      copy.style.width = `${inner.offsetWidth}px`;
-      copy.style.left = `${inner.offsetLeft}px`;
-      copy.style.top = `${inner.offsetTop}px`;
-      inner.after(copy);
-
-      const options = { duration: LINK.duration, ease: LINK.ease };
-      running = gsap.timeline({
-        onComplete: () => {
-          gsap.set(inner, { xPercent: 0 });
-          copy.remove();
-          running = null;
-        },
-      });
-      running.fromTo(copy, { xPercent: -100 }, { xPercent: 0, ...options }, 0);
-      running.fromTo(inner, { xPercent: 0 }, { xPercent: 100, ...options }, 0);
-    };
-
-    box.addEventListener("pointerenter", swap);
-    box.addEventListener("pointerleave", swap);
+      gsap.killTweensOf(text);
+      gsap.timeline()
+        .to(text, { clipPath: "inset(0% 0% 0% 100%)", duration: LINK.out, ease: LINK.ease })
+        .fromTo(text, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: LINK.in, ease: LINK.ease });
+    });
   });
 }
 

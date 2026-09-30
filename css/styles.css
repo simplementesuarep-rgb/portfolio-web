@@ -167,13 +167,8 @@ html.lenis body {
    5. Componentes
    ========================================================================== */
 
-/* Caja de la cabecera con hover: el texto sale por un lado y una copia entra por
-   el otro (ver initLinks en script.js). Cada texto va enmascarado por su caja. */
-.link,
-.header__toggle {
-  position: relative; /* la copia del hover se coloca dentro de la caja */
-}
-
+/* Caja de la cabecera con hover: la caja se queda quieta y el texto sale y
+   entra con un barrido lateral (ver initLinks en script.js) */
 .link {
   display: inline-block;
   white-space: nowrap;
@@ -181,18 +176,12 @@ html.lenis body {
 
 .link__inner {
   display: inline-block;
-  overflow: hidden;
   vertical-align: top;
+  clip-path: inset(0);
 }
 
 .link__text {
   display: inline-block;
-}
-
-.header .link__clone {
-  margin: 0; /* la posición ya la da el JS */
-  position: absolute;
-  pointer-events: none;
 }
 
 /* Cabecera: texto negro sobre una caja blanca ajustada a cada texto */
