@@ -123,10 +123,19 @@ function initVirtualScroll() {
 /* ==========================================================================
    4. Menú de trabajos
    "Works," abre la lista de proyectos a pantalla completa; al pasar por uno
-   se ve su foto de fondo.
+   se ve su foto de fondo y, a la izquierda, su disciplina.
    ========================================================================== */
 
-const MENU = { duration: 0.8, ease: "power4.inOut", stagger: 0.04, label: 0.7, labelEase: "power3.inOut" };
+const MENU = {
+  duration: 0.8,
+  ease: "power4.inOut",
+  stagger: 0.04,
+  label: 0.7,
+  labelEase: "power3.inOut",
+  typeMove: 0.5,   // lo que tarda la disciplina en pasar de una fila a otra
+  typeEase: "power3.out",
+  typeFade: 0.3,
+};
 
 function initMenu() {
   const toggle = document.querySelector(".header__toggle");
@@ -134,6 +143,8 @@ function initMenu() {
   if (!toggle || !menu) return;
 
   const labels = toggle.querySelectorAll(".header__toggle-text");
+  const type = menu.querySelector(".menu__label");
+  const list = menu.querySelector(".menu__list");
   const links = menu.querySelectorAll(".menu__item a");
   const image = menu.querySelector(".menu__image img");
   let open = false;
@@ -181,14 +192,45 @@ function initMenu() {
     }
   });
 
+  // La disciplina del proyecto aparece a la izquierda, a la altura de su fila,
+  // y se desliza de una fila a otra siguiendo al ratón
+  const first = links[0].closest(".menu__item");
+  let typeShown = false;
+
+  const showType = (link) => {
+    const text = link.dataset.type;
+    if (!text) return hideType();
+
+    const y = link.closest(".menu__item").getBoundingClientRect().top - first.getBoundingClientRect().top;
+    type.textContent = text;
+    if (reducedMotion || !typeShown) {
+      gsap.killTweensOf(type);
+      gsap.set(type, { y });
+    } else {
+      gsap.to(type, { y, duration: MENU.typeMove, ease: MENU.typeEase, overwrite: "auto" });
+    }
+    gsap.to(type, { opacity: 1, duration: reducedMotion ? 0 : MENU.typeFade, overwrite: "auto" });
+    typeShown = true;
+  };
+
+  const hideType = () => {
+    typeShown = false;
+    gsap.to(type, { opacity: 0, duration: reducedMotion ? 0 : MENU.typeFade, overwrite: "auto" });
+  };
+
   links.forEach((link) => {
-    if (!link.dataset.image) return;
-    link.addEventListener("pointerenter", () => {
-      image.src = link.dataset.image;
-      menu.classList.add("has-image");
-    });
-    link.addEventListener("pointerleave", () => menu.classList.remove("has-image"));
+    if (link.dataset.image) {
+      link.addEventListener("pointerenter", () => {
+        image.src = link.dataset.image;
+        menu.classList.add("has-image");
+      });
+      link.addEventListener("pointerleave", () => menu.classList.remove("has-image"));
+    }
+    link.addEventListener("pointerenter", () => showType(link));
+    link.addEventListener("focus", () => showType(link));
   });
+  list.addEventListener("pointerleave", hideType);
+  list.addEventListener("focusout", hideType);
 }
 
 

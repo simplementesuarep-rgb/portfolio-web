@@ -302,10 +302,14 @@ html.lenis body {
   mix-blend-mode: difference;
 }
 
+/* Disciplina del proyecto que tiene el ratón encima; script.js la coloca a
+   la altura de su fila y solo se ve mientras hay una fila señalada */
 .menu__label {
   grid-column: 1;
   padding-top: calc(var(--fs-nav-lead) * 0.9 - var(--fs-nav));
   font-size: var(--fs-nav);
+  font-style: italic;
+  opacity: 0;
 }
 
 .menu__list {
