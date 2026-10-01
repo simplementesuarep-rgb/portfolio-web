@@ -551,78 +551,107 @@ function initCursorTag() {
 
 
 /* ==========================================================================
-   Diafragma: hover de las fotos que llevan a un proyecto
-   Al pasar el ratón el marco se cierra un poco desde los cuatro lados, como un
-   diafragma o un reencuadre, y la foto de dentro se acerca despacio y se
-   desplaza siguiendo al ratón. Al salir se abre de nuevo. Se aplica a las
-   tarjetas de la home y del índice y al bloque del siguiente proyecto.
+   Cortinas: hover de las fotos que llevan a un proyecto
+   Al pasar el ratón, la foto se cubre con franjas verticales que entran una
+   tras otra desde un lado, como cortinas. Cada franja muestra la misma foto
+   un poco ampliada y desplazada, así que la imagen se ve partida, como a
+   través de un cristal acanalado; al mover el ratón el desplazamiento cambia.
+   Al salir, las franjas se recogen. Se aplica a las tarjetas de la home y del
+   índice y al bloque del siguiente proyecto.
    ========================================================================== */
 
-const DIAPHRAGM = {
-  inset: 0.05,           // cuánto se cierra el marco (proporción del lado corto)
-  zoom: 1.08,            // cuánto se acerca la foto
-  drift: 0.03,           // cuánto se desplaza siguiendo al ratón (proporción del tamaño)
-  duration: 0.8,         // cierre y apertura del marco
-  ease: "power3.out",
-  follow: 1,             // inercia con la que la foto sigue al ratón (segundos)
+const CURTAINS = {
+  count: 9,              // número de franjas
+  shift: 0.025,          // desplazamiento entre una franja y la siguiente (proporción del ancho)
+  zoom: 1.15,            // cuánto se amplía la foto dentro de las franjas
+  drift: 0.02,           // cuánto cambia el desplazamiento al mover el ratón (proporción del ancho)
+  open: 0.5,             // entrada de cada franja
+  close: 0.35,           // salida de cada franja
+  stagger: 0.035,        // retardo entre franjas
+  follow: 0.8,           // inercia con la que siguen al ratón (segundos)
 };
 
-function initDiaphragm() {
+function initCurtains() {
   if (!finePointer || reducedMotion) return;
 
-  const hosts = [...document.querySelectorAll(".card[data-cursor-title], .next[data-cursor-title]")];
+  const selector = ".card[data-cursor-title], .next[data-cursor-title]";
+  const hosts = [...document.querySelectorAll(selector)];
   if (!hosts.length) return;
 
-  // En el siguiente proyecto se cierra solo la foto: el texto queda fuera del marco
-  const parts = new Map(
-    hosts.map((host) => {
-      const frame = host.matches(".next") ? host.querySelector(".next__image") : host;
-      const image = host.querySelector("img");
-      const follow = { duration: DIAPHRAGM.follow, ease: "power3.out" };
-      // Se anima un número y el recorte se escribe a mano: el navegador resume
-      // "inset(10px 10px 10px 10px)" como "inset(10px)" y GSAP solo animaría un lado
-      const aperture = { d: 0 };
-      const draw = () => (frame.style.clipPath = `inset(${aperture.d}px)`);
-      return [host, { frame, image, aperture, draw, x: gsap.quickTo(image, "x", follow), y: gsap.quickTo(image, "y", follow) }];
-    })
-  );
+  const parts = new Map();
+
+  // Las franjas se construyen la primera vez que se pasa por cada foto, con la
+  // imagen que el navegador ya ha cargado. En el siguiente proyecto van dentro
+  // de la foto, por debajo del velo y del texto.
+  const build = (host) => {
+    const source = host.querySelector("img");
+    const holder = host.matches(".next") ? host.querySelector(".next__image") : host;
+    const layer = document.createElement("div");
+    layer.className = "curtains";
+    layer.setAttribute("aria-hidden", "true");
+    const strips = [];
+    const images = [];
+    for (let i = 0; i < CURTAINS.count; i++) {
+      const strip = document.createElement("div");
+      strip.className = "curtains__strip";
+      const image = document.createElement("img");
+      image.alt = "";
+      image.src = source.currentSrc || source.src;
+      strip.append(image);
+      layer.append(strip);
+      strips.push(strip);
+      images.push(image);
+    }
+    holder.append(layer);
+    gsap.set(strips, { scaleX: 0 });
+    gsap.set(images, { scale: CURTAINS.zoom });
+    const follow = { duration: CURTAINS.follow, ease: "power3.out" };
+    const part = { layer, strips, images, moves: images.map((image) => gsap.quickTo(image, "x", follow)) };
+    parts.set(host, part);
+    return part;
+  };
+
+  // Cada franja enseña el trozo de foto que le toca, desplazado según su
+  // distancia al centro; el ratón cambia cuánto se desplazan
+  const place = (part, pointerX = 0.5) => {
+    const box = part.layer.getBoundingClientRect();
+    const width = box.width / CURTAINS.count;
+    const middle = (CURTAINS.count - 1) / 2;
+    part.images.forEach((image, i) => {
+      image.style.width = `${box.width}px`;
+      image.style.left = `${-i * width}px`;
+      const offset = (i - middle) * box.width * (CURTAINS.shift + (pointerX - 0.5) * CURTAINS.drift);
+      part.moves[i](offset);
+    });
+  };
+
+  const show = (host) => {
+    const part = parts.get(host) || build(host);
+    place(part);
+    gsap.to(part.strips, { scaleX: 1, duration: CURTAINS.open, ease: "power3.out", stagger: CURTAINS.stagger, overwrite: true });
+  };
+
+  const hide = (host) => {
+    const part = parts.get(host);
+    if (!part) return;
+    gsap.to(part.strips, { scaleX: 0, duration: CURTAINS.close, ease: "power3.in", stagger: { each: CURTAINS.stagger, from: "end" }, overwrite: true });
+  };
 
   const pointer = { x: -1, y: -1 };
   let current = null;
 
-  const close = (host) => {
-    const { frame, image, aperture, draw } = parts.get(host);
-    const box = frame.getBoundingClientRect();
-    const d = Math.round(Math.min(box.width, box.height) * DIAPHRAGM.inset);
-    gsap.to(aperture, { d, duration: DIAPHRAGM.duration, ease: DIAPHRAGM.ease, overwrite: true, onUpdate: draw });
-    gsap.to(image, { scale: DIAPHRAGM.zoom, duration: DIAPHRAGM.duration * 1.5, ease: DIAPHRAGM.ease, overwrite: "auto" });
-  };
-
-  const open = (host) => {
-    const part = parts.get(host);
-    gsap.to(part.aperture, { d: 0, duration: DIAPHRAGM.duration, ease: DIAPHRAGM.ease, overwrite: true, onUpdate: part.draw });
-    gsap.to(part.image, { scale: 1, duration: DIAPHRAGM.duration * 1.5, ease: DIAPHRAGM.ease, overwrite: "auto" });
-    part.x(0);
-    part.y(0);
-  };
-
-  // La foto se desplaza hacia donde está el ratón dentro del marco
-  const follow = () => {
-    if (!current) return;
-    const { frame, x, y } = parts.get(current);
-    const box = frame.getBoundingClientRect();
-    x(((pointer.x - box.left) / box.width - 0.5) * box.width * DIAPHRAGM.drift);
-    y(((pointer.y - box.top) / box.height - 0.5) * box.height * DIAPHRAGM.drift);
-  };
-
   const check = (element) => {
-    const host = element?.closest?.(".card[data-cursor-title], .next[data-cursor-title]") || null;
+    const host = element?.closest?.(selector) || null;
     if (host !== current) {
-      if (current) open(current);
-      current = host && parts.has(host) ? host : null;
-      if (current) close(current);
+      if (current) hide(current);
+      current = host;
+      if (current) show(current);
     }
-    follow();
+    if (current) {
+      const part = parts.get(current);
+      const box = part.layer.getBoundingClientRect();
+      place(part, gsap.utils.clamp(0, 1, (pointer.x - box.left) / box.width));
+    }
   };
 
   // Igual que la etiqueta del ratón: lo que hay debajo también cambia con el scroll
@@ -1071,7 +1100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initLenis();
   initVirtualScroll();
   initCursorTag();
-  initDiaphragm();
+  initCurtains();
   initBounce();
   initSignature();
   initSound();

@@ -408,6 +408,32 @@ html.lenis body {
   object-fit: cover;
 }
 
+/* Cortinas del hover (script.js): franjas verticales que entran desde la
+   derecha, cada una con la foto ampliada y un poco desplazada */
+.curtains {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+
+.curtains__strip {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  transform-origin: 100% 50%;
+  will-change: transform;
+}
+
+.curtains__strip img {
+  position: absolute;
+  top: 0;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
 /* Etiqueta que sigue al ratón sobre los proyectos (script.js): el tipo de
    proyecto arriba, más pequeño, y el nombre debajo. Cada línea lleva su
    propio fondo, ajustado al texto. */
@@ -595,7 +621,7 @@ html.lenis body {
   display: block;
   height: 100svh;
   overflow: hidden;
-  background: var(--color-bg); /* es lo que asoma cuando el diafragma cierra la foto */
+  background: var(--color-bg);
 }
 
 .next__image,
