@@ -664,10 +664,9 @@ html.lenis body {
   left: calc(var(--margin) + var(--col) + var(--gutter));
   width: var(--col);
   line-height: 1.3;
-  text-transform: none;
 }
 
-/* Texto en minúsculas con relleno blanco: el fondo se ajusta a cada línea */
+/* Texto con relleno blanco: el fondo se ajusta a cada línea */
 .project__description span {
   padding: 2px 4px;
   background: var(--color-tag);
