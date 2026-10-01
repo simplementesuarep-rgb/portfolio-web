@@ -552,33 +552,29 @@ function initCursorTag() {
 
 /* ==========================================================================
    Cortinas: hover de las fotos que llevan a un proyecto
-   Al pasar el ratón, la foto se cubre con franjas verticales que entran una
-   tras otra desde un lado, como cortinas. Cada franja muestra la misma foto
-   un poco ampliada y desplazada, así que la imagen se ve partida, como a
-   través de un cristal acanalado; al mover el ratón el desplazamiento cambia.
-   Al salir, las franjas se recogen. Se aplica a las tarjetas de la home y del
+   Al pasar el ratón, la foto se cubre con franjas verticales que se despliegan
+   una tras otra de izquierda a derecha, como cortinas. Cada franja enseña la
+   misma foto al doble de ancho, encuadrada en el trozo que le toca y con un
+   pequeño desfase, así que la imagen se ve partida, como a través de un
+   cristal acanalado. Al salir, las franjas se recogen hacia la derecha.
+   La foto de dentro no se mueve. Se aplica a las tarjetas de la home y del
    índice y al bloque del siguiente proyecto.
    ========================================================================== */
 
 const CURTAINS = {
   count: 9,              // número de franjas
-  shift: 0.025,          // desplazamiento entre una franja y la siguiente (proporción del ancho)
-  zoom: 1.15,            // cuánto se amplía la foto dentro de las franjas
-  drift: 0.02,           // cuánto cambia el desplazamiento al mover el ratón (proporción del ancho)
-  open: 0.5,             // entrada de cada franja
-  close: 0.35,           // salida de cada franja
-  stagger: 0.035,        // retardo entre franjas
-  follow: 0.8,           // inercia con la que siguen al ratón (segundos)
+  step: 3.75,            // desfase en píxeles que se acumula hacia el centro
+  duration: 0.2,         // despliegue de cada franja (segundos)
+  stagger: 0.02,         // retardo entre una franja y la siguiente (segundos)
 };
 
 function initCurtains() {
   if (!finePointer || reducedMotion) return;
 
   const selector = ".card[data-cursor-title], .next[data-cursor-title]";
-  const hosts = [...document.querySelectorAll(selector)];
-  if (!hosts.length) return;
+  if (!document.querySelector(selector)) return;
 
-  const parts = new Map();
+  const layers = new Map();
 
   // Las franjas se construyen la primera vez que se pasa por cada foto, con la
   // imagen que el navegador ya ha cargado. En el siguiente proyecto van dentro
@@ -589,69 +585,40 @@ function initCurtains() {
     const layer = document.createElement("div");
     layer.className = "curtains";
     layer.setAttribute("aria-hidden", "true");
-    const strips = [];
-    const images = [];
+    const last = CURTAINS.count - 1;
+    const middle = last / 2;
     for (let i = 0; i < CURTAINS.count; i++) {
       const strip = document.createElement("div");
       strip.className = "curtains__strip";
+      strip.style.transition = `transform ${CURTAINS.duration}s ease-out ${i * CURTAINS.stagger}s`;
       const image = document.createElement("img");
       image.alt = "";
       image.src = source.currentSrc || source.src;
+      // Encuadre de cada franja: de izquierda (0 %) a derecha (100 %), con un
+      // desfase que crece desde los bordes hacia el centro, en sentidos opuestos
+      const offset = Math.min(i, last - i) * CURTAINS.step * (i < middle ? -1 : 1);
+      image.style.objectPosition = `calc(${(i / last) * 100}% + ${offset}px) center`;
       strip.append(image);
       layer.append(strip);
-      strips.push(strip);
-      images.push(image);
     }
     holder.append(layer);
-    gsap.set(strips, { scaleX: 0 });
-    gsap.set(images, { scale: CURTAINS.zoom });
-    const follow = { duration: CURTAINS.follow, ease: "power3.out" };
-    const part = { layer, strips, images, moves: images.map((image) => gsap.quickTo(image, "x", follow)) };
-    parts.set(host, part);
-    return part;
+    layer.getBoundingClientRect(); // fija el estado cerrado antes de abrir por primera vez
+    layers.set(host, layer);
+    return layer;
   };
 
-  // Cada franja enseña el trozo de foto que le toca, desplazado según su
-  // distancia al centro; el ratón cambia cuánto se desplazan
-  const place = (part, pointerX = 0.5) => {
-    const box = part.layer.getBoundingClientRect();
-    const width = box.width / CURTAINS.count;
-    const middle = (CURTAINS.count - 1) / 2;
-    part.images.forEach((image, i) => {
-      image.style.width = `${box.width}px`;
-      image.style.left = `${-i * width}px`;
-      const offset = (i - middle) * box.width * (CURTAINS.shift + (pointerX - 0.5) * CURTAINS.drift);
-      part.moves[i](offset);
-    });
-  };
-
-  const show = (host) => {
-    const part = parts.get(host) || build(host);
-    place(part);
-    gsap.to(part.strips, { scaleX: 1, duration: CURTAINS.open, ease: "power3.out", stagger: CURTAINS.stagger, overwrite: true });
-  };
-
-  const hide = (host) => {
-    const part = parts.get(host);
-    if (!part) return;
-    gsap.to(part.strips, { scaleX: 0, duration: CURTAINS.close, ease: "power3.in", stagger: { each: CURTAINS.stagger, from: "end" }, overwrite: true });
-  };
+  const show = (host) => (layers.get(host) || build(host)).classList.add("is-open");
+  const hide = (host) => layers.get(host)?.classList.remove("is-open");
 
   const pointer = { x: -1, y: -1 };
   let current = null;
 
   const check = (element) => {
     const host = element?.closest?.(selector) || null;
-    if (host !== current) {
-      if (current) hide(current);
-      current = host;
-      if (current) show(current);
-    }
-    if (current) {
-      const part = parts.get(current);
-      const box = part.layer.getBoundingClientRect();
-      place(part, gsap.utils.clamp(0, 1, (pointer.x - box.left) / box.width));
-    }
+    if (host === current) return;
+    if (current) hide(current);
+    current = host;
+    if (current) show(current);
   };
 
   // Igual que la etiqueta del ratón: lo que hay debajo también cambia con el scroll
