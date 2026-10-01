@@ -653,16 +653,18 @@ html.lenis body {
 
 /* Alto 0 y pegado abajo: el texto flota sobre las fotos sin ocupar hueco */
 .project__description {
+  --end-gap: 10px; /* lo que separa el texto del borde cuando el contenido se acaba */
   position: sticky;
-  bottom: 0;
+  bottom: calc(var(--margin) - var(--end-gap));
   height: 0;
 }
 
-/* El margen de abajo lo lleva el párrafo: así, cuando el contenido se acaba y
-   el texto se queda, sigue a un margen del borde en vez de pegado a él */
+/* Parte del margen lo lleva el párrafo: mientras haces scroll el texto sigue a
+   un margen del borde de la pantalla, y cuando el contenido se acaba y el texto
+   se queda, a --end-gap del borde del contenido en vez de pegado a él */
 .project__description p {
   position: absolute;
-  bottom: var(--margin);
+  bottom: var(--end-gap);
   left: calc(var(--margin) + var(--col) + var(--gutter));
   width: var(--col);
   line-height: 1.3;
