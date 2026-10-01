@@ -494,7 +494,6 @@ function initCursorTag() {
     type.hidden = !type.textContent;
     if (visible) return;
     visible = true;
-    sfx.play("image");
     position.x = pointer.x;
     position.y = pointer.y;
     gsap.fromTo(lines, { clipPath: "inset(0% 100% 0% 0%)" }, {
@@ -607,8 +606,17 @@ function initCurtains() {
     return layer;
   };
 
-  const show = (host) => (layers.get(host) || build(host)).classList.add("is-open");
-  const hide = (host) => layers.get(host)?.classList.remove("is-open");
+  // Cada apertura y cierre suena como unas lamas que pasan de izquierda a derecha
+  const show = (host) => {
+    (layers.get(host) || build(host)).classList.add("is-open");
+    sfx.play("image");
+  };
+  const hide = (host) => {
+    const layer = layers.get(host);
+    if (!layer?.classList.contains("is-open")) return;
+    layer.classList.remove("is-open");
+    sfx.play("imageOut");
+  };
 
   const pointer = { x: -1, y: -1 };
   let current = null;
@@ -930,9 +938,9 @@ const SOUND = {
   scrubStep: 70,         // píxeles de scroll entre grano y grano
   gap: 40,               // milisegundos mínimos entre dos veces el mismo efecto
   // Volumen de cada efecto
-  levels: { sweep: 0.18, enter: 0.14, hit: 0.3, soft: 0.14, soft2: 0.2, menu: 0.16, image: 0.15, scrub: 0.1, bounce: 0.18, on: 0.35, off: 0.3 },
+  levels: { sweep: 0.18, enter: 0.14, hit: 0.3, soft: 0.14, soft2: 0.2, menu: 0.16, image: 0.15, imageOut: 0.1, scrub: 0.1, bounce: 0.18, on: 0.35, off: 0.3 },
   // Posición de cada efecto dentro de sfx.webm / sfx.mp3 [inicio, duración] en ms
-  sprite: {"sweep":[0,500],"enter":[620,700],"hit":[1440,90],"soft":[1650,40],"soft2":[1810,50],"menu":[1980,30],"image":[2130,120],"scrub":[2370,20],"bounce":[2510,60],"on":[2690,140],"off":[2950,60]},
+  sprite: {"sweep":[0,500],"enter":[620,700],"hit":[1440,90],"soft":[1650,40],"soft2":[1810,50],"menu":[1980,30],"image":[2130,300],"scrub":[2550,20],"bounce":[2690,60],"on":[2870,140],"off":[3130,60],"imageOut":[3310,300]},
 };
 
 function initSound() {
