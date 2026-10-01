@@ -164,6 +164,39 @@ const MENU = {
   repelRadius: 80,       // alto de la onda: a qué distancia vertical de "Close," empieza a apartar
 };
 
+// Cambio de texto con dos capas apiladas: la nueva entra con un barrido desde la
+// izquierda, como el texto del ratón en la home, y la vieja sale por la derecha.
+// Lo usan el menú (disciplina y año) y el título del bloque del siguiente proyecto.
+function createSwapper(box, selector = ".menu__type") {
+  const spans = [...box.querySelectorAll(selector)];
+  let current = spans.findIndex((span) => span.dataset.shown === "1");
+  const wipe = (span, from, to) => {
+    if (reducedMotion) gsap.set(span, { clipPath: to });
+    else gsap.fromTo(span, { clipPath: from }, { clipPath: to, duration: MENU.wipe, ease: MENU.wipeEase, overwrite: true });
+  };
+  return {
+    show(text) {
+      const now = spans[current];
+      if (now && now.textContent === text && now.dataset.shown === "1") return;
+      const next = spans[(current + 1) % spans.length];
+      next.textContent = text;
+      next.dataset.shown = "1";
+      wipe(next, "inset(0% 100% 0% 0%)", "inset(0% 0% 0% 0%)");
+      if (now && now.dataset.shown === "1") {
+        now.dataset.shown = "0";
+        wipe(now, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
+      }
+      current = spans.indexOf(next);
+    },
+    hide() {
+      const now = spans[current];
+      if (!now || now.dataset.shown !== "1") return;
+      now.dataset.shown = "0";
+      wipe(now, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
+    },
+  };
+}
+
 function initMenu(transition) {
   const toggle = document.querySelector(".header__toggle");
   const menu = document.querySelector(".menu");
@@ -186,39 +219,8 @@ function initMenu(transition) {
   let focused = -1;   // fila con el foco del teclado
   let active = -1;    // fila marcada ahora mismo
 
-  // Cada texto tiene dos capas apiladas: la nueva entra con un barrido desde la
-  // izquierda, como el texto del ratón en la home, y la vieja sale por la derecha
-  const swapper = (box) => {
-    const spans = [...box.querySelectorAll(".menu__type")];
-    let current = -1;
-    const wipe = (span, from, to) => {
-      if (reducedMotion) gsap.set(span, { clipPath: to });
-      else gsap.fromTo(span, { clipPath: from }, { clipPath: to, duration: MENU.wipe, ease: MENU.wipeEase, overwrite: true });
-    };
-    return {
-      show(text) {
-        const now = spans[current];
-        if (now && now.textContent === text && now.dataset.shown === "1") return;
-        const next = spans[(current + 1) % spans.length];
-        next.textContent = text;
-        next.dataset.shown = "1";
-        wipe(next, "inset(0% 100% 0% 0%)", "inset(0% 0% 0% 0%)");
-        if (now && now.dataset.shown === "1") {
-          now.dataset.shown = "0";
-          wipe(now, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
-        }
-        current = spans.indexOf(next);
-      },
-      hide() {
-        const now = spans[current];
-        if (!now || now.dataset.shown !== "1") return;
-        now.dataset.shown = "0";
-        wipe(now, "inset(0% 0% 0% 0%)", "inset(0% 0% 0% 100%)");
-      },
-    };
-  };
-  const type = swapper(typeBox);
-  const year = swapper(yearBox);
+  const type = createSwapper(typeBox);
+  const year = createSwapper(yearBox);
 
   // Las fotos se cargan la primera vez que se abre el menú
   let loaded = false;
@@ -487,12 +489,42 @@ function initCursorTag() {
   const pointer = { x: 0, y: 0 };
   const position = { x: 0, y: 0 };
   let visible = false;
+  let shown = null; // zona cuyo texto lleva ahora la etiqueta
 
-  const show = (host) => {
+  const write = (host) => {
     type.textContent = host.dataset.cursorType || "";
     title.textContent = host.dataset.cursorTitle;
     type.hidden = !type.textContent;
-    if (visible) return;
+  };
+
+  const show = (host) => {
+    if (visible) {
+      if (host === shown) return;
+      shown = host;
+      // De un proyecto a otro sin salir: el texto viejo sale por la derecha y el
+      // nuevo entra por la izquierda, con los tiempos del hover de la cabecera
+      if (reducedMotion) return write(host);
+      gsap.to(lines, {
+        clipPath: "inset(0% 0% 0% 100%)",
+        duration: LINK.out,
+        ease: LINK.outEase,
+        overwrite: true,
+        onComplete: () => {
+          if (!visible || shown !== host) return;
+          write(host);
+          gsap.fromTo(lines, { clipPath: "inset(0% 100% 0% 0%)" }, {
+            clipPath: "inset(0% 0% 0% 0%)",
+            duration: LINK.in,
+            ease: LINK.inEase,
+            delay: LINK.gap,
+            overwrite: true,
+          });
+        },
+      });
+      return;
+    }
+    shown = host;
+    write(host);
     visible = true;
     position.x = pointer.x;
     position.y = pointer.y;
@@ -508,6 +540,7 @@ function initCursorTag() {
   const hide = () => {
     if (!visible) return;
     visible = false;
+    shown = null;
     gsap.to(lines, {
       clipPath: "inset(0% 0% 0% 100%)",
       duration: CURSOR.duration,
@@ -613,12 +646,14 @@ function initCurtains() {
   // Cada apertura y cierre suena como unas lamas que pasan de izquierda a derecha
   // En el bloque del siguiente proyecto, además, el bloque cambia de lado: la
   // foto y el nombre del centro pasan a los del proyecto de esa zona
+  const titles = new WeakMap();
   const side = (host, active) => {
     if (!host.matches(".next__zone")) return;
     const block = host.closest(".next");
     const title = block.querySelector(".next__title");
+    if (!titles.has(title)) titles.set(title, createSwapper(title, ".next__type"));
     block.dataset.side = active ? host.dataset.side : "next";
-    title.textContent = active ? host.dataset.cursorTitle : title.dataset.default;
+    titles.get(title).show(active ? host.dataset.cursorTitle : title.dataset.default);
   };
   const show = (host) => {
     (layers.get(host) || build(host)).classList.add("is-open");

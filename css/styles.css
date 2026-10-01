@@ -749,7 +749,6 @@ html.lenis body {
   pointer-events: none;
 }
 
-.next__title,
 .next__label {
   padding: 2px 6px;
   margin: -2px -6px;
@@ -762,11 +761,27 @@ html.lenis body {
   font-size: var(--fs-nav);
 }
 
+/* El título tiene dos capas apiladas: al cambiar de lado, la nueva entra con el
+   barrido desde la izquierda y la vieja sale por la derecha (script.js) */
 .next__title {
+  display: grid;
   grid-column: 2;
   width: fit-content;
+  margin: -2px -6px;
   font-size: var(--fs-nav-lead);
   line-height: 0.9;
+}
+
+.next__type {
+  grid-area: 1 / 1;
+  padding: 2px 6px;
+  white-space: nowrap;
+  background: var(--color-bg);
+  clip-path: inset(0 100% 0 0);
+}
+
+.next__type[data-shown="1"] {
+  clip-path: inset(0);
 }
 
 .next__label--next {
