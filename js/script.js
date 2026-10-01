@@ -518,7 +518,7 @@ function initCursorTag() {
   };
 
   const check = (element) => {
-    const host = element?.closest?.("[data-cursor-title]");
+    const host = element?.closest?.(".next__prev") ? null : element?.closest?.("[data-cursor-title]");
     if (host) show(host);
     else hide();
   };
@@ -622,7 +622,7 @@ function initCurtains() {
   let current = null;
 
   const check = (element) => {
-    const host = element?.closest?.(selector) || null;
+    const host = element?.closest?.(".next__prev") ? null : element?.closest?.(selector) || null;
     if (host === current) return;
     if (current) hide(current);
     current = host;

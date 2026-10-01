@@ -703,18 +703,53 @@ html.lenis body {
   backdrop-filter: blur(5px);
 }
 
-.next__text {
+/* El enlace al siguiente proyecto cubre todo el bloque */
+.next__cover {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-inline: var(--margin);
+  display: block;
+}
+
+/* Misma retícula y mismos tamaños que la cabecera: "Previous project" donde el
+   nombre, el título del proyecto donde "Works," y "Next project" donde "Sound".
+   Cada texto lleva su caja blanca, ajustada al texto */
+.next__bar {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  align-items: start;
+  transform: translateY(-50%);
   color: var(--color-text);
+  pointer-events: none;
+}
+
+.next__prev,
+.next__title,
+.next__label {
+  padding: 2px 6px;
+  margin: -2px -6px;
+  background: var(--color-bg);
+}
+
+.next__prev {
+  grid-column: 1;
+  justify-self: start;
+  font-size: var(--fs-nav);
+  pointer-events: auto;
 }
 
 .next__title {
-  font-size: var(--fs-large);
+  grid-column: 2;
+  width: fit-content;
+  font-size: var(--fs-nav-lead);
+  line-height: 0.9;
+}
+
+.next__label {
+  grid-column: 3 / -1;
+  justify-self: end;
+  font-size: var(--fs-nav);
 }
 
 .footer {
@@ -828,6 +863,21 @@ html.lenis body {
     grid-column: 1 / -1;
     grid-row: 2;
     margin-top: 10px;
+  }
+
+  /* Igual que la cabecera: dos filas, y el título debajo */
+  .next__prev {
+    grid-column: 1 / 3;
+  }
+
+  .next__label {
+    grid-column: 3 / -1;
+  }
+
+  .next__title {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 14px;
   }
 
   .home {

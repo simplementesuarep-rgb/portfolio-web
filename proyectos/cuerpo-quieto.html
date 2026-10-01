@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#ffffff">
 
   <link rel="preload" href="../assets/fonts/MonaSans-Variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../css/styles.css?v=8cb2c9c7">
+  <link rel="stylesheet" href="../css/styles.css?v=7e3e0957">
   <script>try{sessionStorage.getItem("loaded")||document.documentElement.classList.add("is-loading")}catch(e){}</script>
 
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js" defer></script>
@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/howler@2.2.4/dist/howler.min.js" defer></script>
-  <script src="../js/script.js?v=457e8d28" defer></script>
+  <script src="../js/script.js?v=7e871afa" defer></script>
 </head>
 <body>
 
@@ -100,16 +100,19 @@
       </div>
     </div>
 
-    <a class="next" href="ruido-blanco.html" data-cursor-type="Next project" data-cursor-title="Ruido blanco">
+    <div class="next" data-cursor-type="Next project" data-cursor-title="Ruido blanco">
+      <a class="next__cover" href="ruido-blanco.html" aria-label="Next project: Ruido blanco">
       <picture class="next__image">
           <source type="image/avif" srcset="../assets/img/30-800.avif 800w, ../assets/img/30-1600.avif 1600w, ../assets/img/30-2400.avif 2400w" sizes="100vw">
           <img src="../assets/img/30-1600.webp" srcset="../assets/img/30-800.webp 800w, ../assets/img/30-1600.webp 1600w, ../assets/img/30-2400.webp 2400w" sizes="100vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
         </picture>
-      <span class="next__text">
-        <span class="next__label">Next project</span>
+      </a>
+      <div class="next__bar grid">
+        <a class="next__prev link" href="hora-azul.html"><span class="link__inner"><span class="link__text">Previous project</span></span></a>
         <span class="next__title">Ruido blanco</span>
-      </span>
-    </a>
+        <span class="next__label" aria-hidden="true">Next project</span>
+      </div>
+    </div>
 
     <footer class="footer">
       <a class="footer__social footer__social--start link" href="#"><span class="link__inner"><span class="link__text">LinkedIn</span></span></a>
