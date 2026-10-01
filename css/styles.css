@@ -46,6 +46,7 @@
   --color-text: #000;
   --color-tag: #fff; /* fondo de la etiqueta del cursor */
   --color-muted: #c4c4c4; /* el nombre del pie mientras está separado */
+  --card-ratio: 4 / 5; /* proporción (ancho / alto) de las tarjetas de la home */
   --color-loader: #adadad; /* fondo de la pantalla de carga */
   --color-ink: #fff; /* se usa con mix-blend-mode: difference */
 
@@ -578,6 +579,12 @@ html.lenis body {
 .home .carousel {
   grid-column: 2;
   grid-row: 1 / -1;
+}
+
+/* Las tarjetas de la home ocupan el ancho de la columna y su alto sale de la proporción */
+.home .card {
+  height: auto;
+  aspect-ratio: var(--card-ratio);
 }
 
 .home__description {
