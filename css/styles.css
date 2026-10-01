@@ -619,8 +619,8 @@ html.lenis body {
 
 /* ==========================================================================
    8. Proyecto
-   La portada a todo el ancho y luego todas las fotos, horizontales y
-   verticales, a su proporción en las dos columnas de la derecha. El texto se
+   La portada a todo el ancho y luego las fotos a su proporción: verticales
+   en las dos columnas de la derecha y horizontales a todo el ancho. El texto se
    queda pegado abajo. Al final, el siguiente proyecto y, detrás de todo, el
    footer, que queda al descubierto al llegar al final.
    ========================================================================== */
@@ -645,6 +645,10 @@ html.lenis body {
 
 .shot {
   width: calc(50% - var(--gutter) / 2);
+}
+
+.shot--wide {
+  width: 100%;
 }
 
 /* Alto 0 y pegado abajo: el texto flota sobre las fotos sin ocupar hueco */
