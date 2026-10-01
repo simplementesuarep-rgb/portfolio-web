@@ -503,27 +503,30 @@ html.lenis body {
 }
 
 /* Pantalla de carga (script.js): solo en la primera página de la visita.
-   Las franjas de la transición hacen de fondo gris; encima, una cuadrícula de
-   porcentajes escritos en palabras, cada uno con su fondo blanco. Al terminar
-   aparece el nombre en el centro y las franjas se abren. */
-.is-loading .transition span {
-  background: var(--color-loader);
-}
-
+   Fondo gris con una cuadrícula de porcentajes escritos en palabras, cada uno
+   con su fondo blanco. Al terminar aparece el nombre en el centro, el gris se
+   va y las franjas blancas de la transición abren la página. Se pinta desde
+   el primer momento; si el JS no llega en 3 s, se oculta. */
 .loader {
   display: none;
 }
 
-.js.is-loading .loader {
+.is-loading .loader {
   position: fixed;
   inset: 0;
   z-index: 95;
   display: block;
+  background: var(--color-loader);
+  animation: transition-fallback 0s 3s forwards;
   font-size: var(--fs-small);
   line-height: 1;
   white-space: nowrap;
   color: var(--color-text);
   pointer-events: none;
+}
+
+.js .loader {
+  animation: none;
 }
 
 .loader__cell,

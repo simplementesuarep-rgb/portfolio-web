@@ -654,7 +654,8 @@ function initCurtains() {
    nunca va por delante de lo que de verdad lleva cargado la página: en un
    ordenador rápido corre seguida y en uno lento espera. Cada palabra que
    llega a "One hundred" sale con el barrido lateral de la web; cuando no
-   queda ninguna, aparece el nombre en el centro y las franjas abren la página.
+   queda ninguna, aparece el nombre en el centro, se va el gris y las franjas
+   blancas de la transición abren la página.
    ========================================================================== */
 
 const LOADER = {
@@ -1221,6 +1222,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await document.fonts.ready;
   await runLoader();
-  // Tras la pantalla de carga las franjas vuelven a su color de siempre
+  // La marca de la pantalla de carga se quita cuando la página ya está abierta
   transition.reveal(() => document.documentElement.classList.remove("is-loading"));
 });
