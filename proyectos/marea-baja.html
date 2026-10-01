@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#ffffff">
 
   <link rel="preload" href="../assets/fonts/MonaSans-Variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../css/styles.css?v=7e3e0957">
+  <link rel="stylesheet" href="../css/styles.css?v=aa9a0d05">
   <script>try{sessionStorage.getItem("loaded")||document.documentElement.classList.add("is-loading")}catch(e){}</script>
 
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js" defer></script>
@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/howler@2.2.4/dist/howler.min.js" defer></script>
-  <script src="../js/script.js?v=7e871afa" defer></script>
+  <script src="../js/script.js?v=35764512" defer></script>
 </head>
 <body>
 
@@ -94,17 +94,21 @@
       </div>
     </div>
 
-    <div class="next" data-cursor-type="Next project" data-cursor-title="Hora azul">
-      <a class="next__cover" href="hora-azul.html" aria-label="Next project: Hora azul">
-      <picture class="next__image">
+    <div class="next" data-side="next">
+      <picture class="next__image next__image--prev">
+          <source type="image/avif" srcset="../assets/img/article01-01-detalle-800.avif 800w, ../assets/img/article01-01-detalle-1600.avif 1600w, ../assets/img/article01-01-detalle-2400.avif 2400w" sizes="100vw">
+          <img src="../assets/img/article01-01-detalle-1600.webp" srcset="../assets/img/article01-01-detalle-800.webp 800w, ../assets/img/article01-01-detalle-1600.webp 1600w, ../assets/img/article01-01-detalle-2400.webp 2400w" sizes="100vw" width="2400" height="1481" alt="" loading="lazy" decoding="async">
+        </picture>
+      <picture class="next__image next__image--next">
           <source type="image/avif" srcset="../assets/img/sesion10-03-6-800.avif 800w, ../assets/img/sesion10-03-6-1600.avif 1600w, ../assets/img/sesion10-03-6-2400.avif 2400w" sizes="100vw">
           <img src="../assets/img/sesion10-03-6-1600.webp" srcset="../assets/img/sesion10-03-6-800.webp 800w, ../assets/img/sesion10-03-6-1600.webp 1600w, ../assets/img/sesion10-03-6-2400.webp 2400w" sizes="100vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
         </picture>
-      </a>
-      <div class="next__bar grid">
-        <a class="next__prev link" href="cata-la-lata.html"><span class="link__inner"><span class="link__text">Previous project</span></span></a>
-        <span class="next__title">Hora azul</span>
-        <span class="next__label" aria-hidden="true">Next project</span>
+      <a class="next__zone next__zone--prev" href="cata-la-lata.html" data-side="prev" data-cursor-type="Previous project" data-cursor-title="Cata la Lata" aria-label="Previous project: Cata la Lata"></a>
+      <a class="next__zone next__zone--next" href="hora-azul.html" data-side="next" data-cursor-type="Next project" data-cursor-title="Hora azul" aria-label="Next project: Hora azul"></a>
+      <div class="next__bar grid" aria-hidden="true">
+        <span class="next__label next__label--prev">Previous project</span>
+        <span class="next__title" data-default="Hora azul">Hora azul</span>
+        <span class="next__label next__label--next">Next project</span>
       </div>
     </div>
 

@@ -518,7 +518,7 @@ function initCursorTag() {
   };
 
   const check = (element) => {
-    const host = element?.closest?.(".next__prev") ? null : element?.closest?.("[data-cursor-title]");
+    const host = element?.closest?.("[data-cursor-title]");
     if (host) show(host);
     else hide();
   };
@@ -557,7 +557,9 @@ function initCursorTag() {
    pequeño desfase, así que la imagen se ve partida, como a través de un
    cristal acanalado. Al salir, las franjas se recogen hacia la derecha.
    La foto de dentro no se mueve. Se aplica a las tarjetas de la home y del
-   índice y al bloque del siguiente proyecto.
+   índice y a las dos zonas del bloque del siguiente proyecto: a la izquierda
+   del nombre pasa a la foto y el nombre del anterior, del nombre en adelante
+   a los del siguiente.
    ========================================================================== */
 
 const CURTAINS = {
@@ -570,7 +572,7 @@ const CURTAINS = {
 function initCurtains() {
   if (!finePointer || reducedMotion) return;
 
-  const selector = ".card[data-cursor-title], .next[data-cursor-title]";
+  const selector = ".card[data-cursor-title], .next__zone[data-cursor-title]";
   if (!document.querySelector(selector)) return;
 
   const layers = new Map();
@@ -579,8 +581,10 @@ function initCurtains() {
   // imagen que el navegador ya ha cargado. En el siguiente proyecto van dentro
   // de la foto, por debajo del velo y del texto.
   const build = (host) => {
-    const source = host.querySelector("img");
-    const holder = host.matches(".next") ? host.querySelector(".next__image") : host;
+    // En el bloque del siguiente proyecto, cada zona usa la foto de su lado
+    const photo = host.matches(".next__zone") ? host.closest(".next").querySelector(`.next__image--${host.dataset.side}`) : host;
+    const source = photo.querySelector("img");
+    const holder = photo;
     const layer = document.createElement("div");
     layer.className = "curtains";
     layer.setAttribute("aria-hidden", "true");
@@ -607,11 +611,22 @@ function initCurtains() {
   };
 
   // Cada apertura y cierre suena como unas lamas que pasan de izquierda a derecha
+  // En el bloque del siguiente proyecto, además, el bloque cambia de lado: la
+  // foto y el nombre del centro pasan a los del proyecto de esa zona
+  const side = (host, active) => {
+    if (!host.matches(".next__zone")) return;
+    const block = host.closest(".next");
+    const title = block.querySelector(".next__title");
+    block.dataset.side = active ? host.dataset.side : "next";
+    title.textContent = active ? host.dataset.cursorTitle : title.dataset.default;
+  };
   const show = (host) => {
     (layers.get(host) || build(host)).classList.add("is-open");
+    side(host, true);
     sfx.play("image");
   };
   const hide = (host) => {
+    side(host, false);
     const layer = layers.get(host);
     if (!layer?.classList.contains("is-open")) return;
     layer.classList.remove("is-open");
@@ -622,7 +637,7 @@ function initCurtains() {
   let current = null;
 
   const check = (element) => {
-    const host = element?.closest?.(".next__prev") ? null : element?.closest?.(selector) || null;
+    const host = element?.closest?.(selector) || null;
     if (host === current) return;
     if (current) hide(current);
     current = host;
