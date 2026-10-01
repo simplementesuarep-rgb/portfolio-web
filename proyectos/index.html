@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#ffffff">
 
   <link rel="preload" href="../assets/fonts/MonaSans-Variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../css/styles.css?v=eb6ed1a7">
+  <link rel="stylesheet" href="../css/styles.css?v=2f5db8ec">
   <script>try{sessionStorage.getItem("loaded")||document.documentElement.classList.add("is-loading")}catch(e){}</script>
 
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js" defer></script>
@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/howler@2.2.4/dist/howler.min.js" defer></script>
-  <script src="../js/script.js?v=15685933" defer></script>
+  <script src="../js/script.js?v=6f07256c" defer></script>
 </head>
 <body data-scroll="virtual">
 
@@ -34,6 +34,7 @@
   <div class="menu" id="menu" inert>
     <div class="menu__image" aria-hidden="true">
       <img data-src="../assets/img/21-1600.webp" alt="" class="is-active">
+      <img data-src="../assets/img/rumbo-poster-960.webp" alt="">
       <img data-src="../assets/img/article01-01-detalle-1600.webp" alt="">
       <img data-src="../assets/img/22-1600.webp" alt="">
       <img data-src="../assets/img/sesion10-03-6-1600.webp" alt="">
@@ -47,6 +48,7 @@
       <p class="menu__year" aria-hidden="true"><span class="menu__type"></span><span class="menu__type"></span></p>
       <ul class="menu__list">
         <li class="menu__item"><a href="../proyectos/index.html" data-type="All projects" data-year="2025–2026">View all</a></li>
+        <li class="menu__item"><a href="../proyectos/rumbo.html" data-type="Cinematography" data-year="2026">Rumbo</a></li>
         <li class="menu__item"><a href="../proyectos/cata-la-lata.html" data-type="Packaging" data-year="2026">Cata la Lata</a></li>
         <li class="menu__item"><a href="../proyectos/yeico-x-toni.html" data-type="Photography" data-year="2025">Yeico x Toni</a></li>
         <li class="menu__item"><a href="../proyectos/hora-azul.html" data-type="Cinematography" data-year="2025">Hora azul</a></li>
@@ -60,6 +62,12 @@
   <main class="works">
     <h1 class="sr-only">All works</h1>
     <div class="carousel" data-carousel>
+      <a class="card" href="../proyectos/rumbo.html" data-cursor-type="Cinematography" data-cursor-title="Rumbo">
+        <picture class="card__image">
+          <source type="image/avif" srcset="../assets/img/rumbo-poster-480.avif 480w, ../assets/img/rumbo-poster-960.avif 960w" sizes="34vw">
+          <img src="../assets/img/rumbo-poster-960.webp" srcset="../assets/img/rumbo-poster-480.webp 480w, ../assets/img/rumbo-poster-960.webp 960w" sizes="34vw" width="960" height="720" alt="" loading="lazy" decoding="async">
+        </picture>
+      </a>
       <a class="card" href="../proyectos/cata-la-lata.html" data-cursor-type="Packaging" data-cursor-title="Cata la Lata">
         <picture class="card__image">
           <source type="image/avif" srcset="../assets/img/article01-01-detalle-800.avif 800w, ../assets/img/article01-01-detalle-1600.avif 1600w, ../assets/img/article01-01-detalle-2400.avif 2400w" sizes="34vw">
@@ -78,14 +86,14 @@
           <img src="../assets/img/sesion10-03-6-1600.webp" srcset="../assets/img/sesion10-03-6-800.webp 800w, ../assets/img/sesion10-03-6-1600.webp 1600w, ../assets/img/sesion10-03-6-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
         </picture>
       </a>
-      <a class="card" href="../proyectos/cuerpo-quieto.html" data-cursor-type="Art direction" data-cursor-title="Cuerpo quieto">
-        <picture class="card__image">
-          <source type="image/avif" srcset="../assets/img/sesion10-03-3-800.avif 800w, ../assets/img/sesion10-03-3-1600.avif 1600w, ../assets/img/sesion10-03-3-2400.avif 2400w" sizes="34vw">
-          <img src="../assets/img/sesion10-03-3-1600.webp" srcset="../assets/img/sesion10-03-3-800.webp 800w, ../assets/img/sesion10-03-3-1600.webp 1600w, ../assets/img/sesion10-03-3-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
-        </picture>
-      </a>
     </div>
     <div class="carousel" data-carousel>
+      <a class="card" href="../proyectos/yeico-x-toni.html" data-cursor-type="Photography" data-cursor-title="Yeico x Toni">
+        <picture class="card__image">
+          <source type="image/avif" srcset="../assets/img/22-800.avif 800w, ../assets/img/22-1600.avif 1600w, ../assets/img/22-2400.avif 2400w" sizes="34vw">
+          <img src="../assets/img/22-1600.webp" srcset="../assets/img/22-800.webp 800w, ../assets/img/22-1600.webp 1600w, ../assets/img/22-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
+        </picture>
+      </a>
       <a class="card" href="../proyectos/hora-azul.html" data-cursor-type="Cinematography" data-cursor-title="Hora azul">
         <picture class="card__image">
           <source type="image/avif" srcset="../assets/img/sesion10-03-6-800.avif 800w, ../assets/img/sesion10-03-6-1600.avif 1600w, ../assets/img/sesion10-03-6-2400.avif 2400w" sizes="34vw">
@@ -104,14 +112,14 @@
           <img src="../assets/img/30-1600.webp" srcset="../assets/img/30-800.webp 800w, ../assets/img/30-1600.webp 1600w, ../assets/img/30-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
         </picture>
       </a>
-      <a class="card" href="../proyectos/sal.html" data-cursor-type="Editorial" data-cursor-title="Sal">
-        <picture class="card__image">
-          <source type="image/avif" srcset="../assets/img/sesion-fotos3-9-800.avif 800w, ../assets/img/sesion-fotos3-9-1600.avif 1600w, ../assets/img/sesion-fotos3-9-2400.avif 2400w" sizes="34vw">
-          <img src="../assets/img/sesion-fotos3-9-1600.webp" srcset="../assets/img/sesion-fotos3-9-800.webp 800w, ../assets/img/sesion-fotos3-9-1600.webp 1600w, ../assets/img/sesion-fotos3-9-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
-        </picture>
-      </a>
     </div>
     <div class="carousel" data-carousel>
+      <a class="card" href="../proyectos/cuerpo-quieto.html" data-cursor-type="Art direction" data-cursor-title="Cuerpo quieto">
+        <picture class="card__image">
+          <source type="image/avif" srcset="../assets/img/sesion10-03-3-800.avif 800w, ../assets/img/sesion10-03-3-1600.avif 1600w, ../assets/img/sesion10-03-3-2400.avif 2400w" sizes="34vw">
+          <img src="../assets/img/sesion10-03-3-1600.webp" srcset="../assets/img/sesion10-03-3-800.webp 800w, ../assets/img/sesion10-03-3-1600.webp 1600w, ../assets/img/sesion10-03-3-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
+        </picture>
+      </a>
       <a class="card" href="../proyectos/ruido-blanco.html" data-cursor-type="Graphic design" data-cursor-title="Ruido blanco">
         <picture class="card__image">
           <source type="image/avif" srcset="../assets/img/30-800.avif 800w, ../assets/img/30-1600.avif 1600w, ../assets/img/30-2400.avif 2400w" sizes="34vw">
@@ -124,16 +132,10 @@
           <img src="../assets/img/sesion-fotos3-9-1600.webp" srcset="../assets/img/sesion-fotos3-9-800.webp 800w, ../assets/img/sesion-fotos3-9-1600.webp 1600w, ../assets/img/sesion-fotos3-9-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
         </picture>
       </a>
-      <a class="card" href="../proyectos/cata-la-lata.html" data-cursor-type="Packaging" data-cursor-title="Cata la Lata">
+      <a class="card" href="../proyectos/rumbo.html" data-cursor-type="Cinematography" data-cursor-title="Rumbo">
         <picture class="card__image">
-          <source type="image/avif" srcset="../assets/img/article01-01-detalle-800.avif 800w, ../assets/img/article01-01-detalle-1600.avif 1600w, ../assets/img/article01-01-detalle-2400.avif 2400w" sizes="34vw">
-          <img src="../assets/img/article01-01-detalle-1600.webp" srcset="../assets/img/article01-01-detalle-800.webp 800w, ../assets/img/article01-01-detalle-1600.webp 1600w, ../assets/img/article01-01-detalle-2400.webp 2400w" sizes="34vw" width="2400" height="1481" alt="" loading="lazy" decoding="async">
-        </picture>
-      </a>
-      <a class="card" href="../proyectos/yeico-x-toni.html" data-cursor-type="Photography" data-cursor-title="Yeico x Toni">
-        <picture class="card__image">
-          <source type="image/avif" srcset="../assets/img/22-800.avif 800w, ../assets/img/22-1600.avif 1600w, ../assets/img/22-2400.avif 2400w" sizes="34vw">
-          <img src="../assets/img/22-1600.webp" srcset="../assets/img/22-800.webp 800w, ../assets/img/22-1600.webp 1600w, ../assets/img/22-2400.webp 2400w" sizes="34vw" width="2400" height="1600" alt="" loading="lazy" decoding="async">
+          <source type="image/avif" srcset="../assets/img/rumbo-poster-480.avif 480w, ../assets/img/rumbo-poster-960.avif 960w" sizes="34vw">
+          <img src="../assets/img/rumbo-poster-960.webp" srcset="../assets/img/rumbo-poster-480.webp 480w, ../assets/img/rumbo-poster-960.webp 960w" sizes="34vw" width="960" height="720" alt="" loading="lazy" decoding="async">
         </picture>
       </a>
     </div>

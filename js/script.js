@@ -62,6 +62,9 @@ const VIRTUAL = {
   shift: 8,       // recorrido del parallax de la foto (% de su alto)
 };
 
+// En la home el carrusel va más lento y más suave que en el índice de proyectos
+const VIRTUAL_HOME = { ...VIRTUAL, wheel: 0.5, touch: 1.5, keyStep: 70, ease: 0.045 };
+
 const virtual = { target: 0, current: 0, locked: false };
 const carousels = [];
 
@@ -95,6 +98,7 @@ function createCarousel(root) {
 
 function initVirtualScroll() {
   if (!isVirtualScroll()) return;
+  const settings = document.querySelector(".home") ? VIRTUAL_HOME : VIRTUAL;
 
   document.querySelectorAll("[data-carousel]").forEach((root) => carousels.push(createCarousel(root)));
   if (!carousels.length) return;
@@ -106,15 +110,15 @@ function initVirtualScroll() {
     onChangeY: (self) => {
       if (virtual.locked) return;
       const wheel = self.event.type === "wheel";
-      virtual.target += wheel ? self.deltaY * VIRTUAL.wheel : -self.deltaY * VIRTUAL.touch;
+      virtual.target += wheel ? self.deltaY * settings.wheel : -self.deltaY * settings.touch;
     },
   });
 
   window.addEventListener("keydown", (event) => {
     if (virtual.locked) return;
     const steps = {
-      ArrowDown: VIRTUAL.keyStep,
-      ArrowUp: -VIRTUAL.keyStep,
+      ArrowDown: settings.keyStep,
+      ArrowUp: -settings.keyStep,
       PageDown: window.innerHeight * 0.8,
       PageUp: -window.innerHeight * 0.8,
       " ": window.innerHeight * 0.8,
@@ -123,7 +127,7 @@ function initVirtualScroll() {
   });
 
   gsap.ticker.add(() => {
-    const k = reducedMotion ? 1 : smoothing(VIRTUAL.ease);
+    const k = reducedMotion ? 1 : smoothing(settings.ease);
     const before = virtual.current;
     virtual.current += (virtual.target - virtual.current) * k;
     carousels.forEach((carousel) => carousel.render(virtual.current));
@@ -613,10 +617,23 @@ function initCurtains() {
   // Las franjas se construyen la primera vez que se pasa por cada foto, con la
   // imagen que el navegador ya ha cargado. En el siguiente proyecto van dentro
   // de la foto, por debajo del velo y del texto.
+  const frameOf = (clip) => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = clip.videoWidth;
+      canvas.height = clip.videoHeight;
+      canvas.getContext("2d").drawImage(clip, 0, 0);
+      return canvas.toDataURL("image/jpeg", 0.85);
+    } catch {
+      return clip.poster;
+    }
+  };
+
   const build = (host) => {
     // En el bloque del siguiente proyecto, cada zona usa la foto de su lado
     const photo = host.matches(".next__zone") ? host.closest(".next").querySelector(`.next__image--${host.dataset.side}`) : host;
-    const source = photo.querySelector("img");
+    const clip = photo.querySelector("video");
+    const source = clip ? { currentSrc: clip.videoWidth ? frameOf(clip) : clip.poster } : photo.querySelector("img");
     const holder = photo;
     const layer = document.createElement("div");
     layer.className = "curtains";
@@ -656,7 +673,14 @@ function initCurtains() {
     titles.get(title).show(active ? host.dataset.cursorTitle : title.dataset.default);
   };
   const show = (host) => {
-    (layers.get(host) || build(host)).classList.add("is-open");
+    const layer = layers.get(host) || build(host);
+    // Las tarjetas con vídeo enseñan el fotograma de ahora, no el de la primera vez
+    const clip = host.querySelector("video");
+    if (clip && clip.videoWidth && layers.has(host)) {
+      const frame = frameOf(clip);
+      layer.querySelectorAll("img").forEach((image) => (image.src = frame));
+    }
+    layer.classList.add("is-open");
     side(host, true);
     sfx.play("image");
   };
@@ -1269,6 +1293,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   initLinks();
   const transition = initTransition();
   initMenu(transition);
+
+  if (reducedMotion) document.querySelectorAll("video").forEach((clip) => clip.pause());
 
   await document.fonts.ready;
   await runLoader();
