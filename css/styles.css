@@ -774,6 +774,7 @@ html.lenis body {
 
 .next__type {
   grid-area: 1 / 1;
+  justify-self: start; /* la caja se ajusta a su texto, no al más largo de las dos capas */
   padding: 2px 6px;
   white-space: nowrap;
   background: var(--color-bg);
