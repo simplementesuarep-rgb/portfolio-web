@@ -77,6 +77,8 @@ const carousels = [];
 function createCarousel(root) {
   const cards = [...root.querySelectorAll(".card")];
   const images = cards.map((card) => card.querySelector(".card__image"));
+  // En el índice cada columna avanza a su ritmo (data-speed); en la home, al del scroll
+  const speed = parseFloat(root.dataset.speed) || 1;
   let size = 0;
   let view = 0;
   let wrap = null;
@@ -90,7 +92,7 @@ function createCarousel(root) {
 
   const render = (scroll) => {
     cards.forEach((card, i) => {
-      const y = wrap(i * size - scroll);
+      const y = wrap(i * size - scroll * speed);
       const shift = gsap.utils.mapRange(view, -size, -VIRTUAL.shift, VIRTUAL.shift, y);
       card.style.transform = `translate3d(0, ${y}px, 0)`;
       images[i].style.transform = `translate3d(0, ${shift}%, 0) scale(1.2)`;
@@ -1147,7 +1149,7 @@ function initLinks() {
    ========================================================================== */
 
 const SOUND = {
-  volume: 0.3,           // volumen del ambiente
+  volume: 0.2,           // volumen del ambiente
   fadeIn: 1.5,           // segundos de fundido al activarlo
   fadeOut: 0.8,          // segundos de fundido al desactivarlo
   leave: 0.4,            // fundido al salir de la página
