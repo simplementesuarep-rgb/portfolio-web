@@ -656,8 +656,6 @@ html.lenis body {
   position: sticky;
   bottom: var(--margin);
   height: 0;
-  color: var(--color-ink);
-  mix-blend-mode: difference;
 }
 
 .project__description p {
@@ -665,6 +663,16 @@ html.lenis body {
   bottom: 0;
   left: calc(var(--margin) + var(--col) + var(--gutter));
   width: var(--col);
+  line-height: 1.3;
+  text-transform: none;
+}
+
+/* Texto en minúsculas con relleno blanco: el fondo se ajusta a cada línea */
+.project__description span {
+  padding: 2px 4px;
+  background: var(--color-tag);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 .next {
