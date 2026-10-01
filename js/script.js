@@ -25,6 +25,13 @@ const smoothing = (factor) => 1 - Math.pow(1 - factor, gsap.ticker.deltaRatio())
    2. Scroll suave (Lenis), en las páginas con scroll nativo
    ========================================================================== */
 
+// El tacto del scroll de toda la web: lento y muy suavizado
+const SMOOTH = {
+  lerp: 0.05,            // páginas con scroll nativo (proyectos): menos = más suave
+  wheel: 0.55,           // cuánto avanza por cada unidad de rueda
+  touch: 1.2,            // y por cada píxel que se arrastra el dedo
+};
+
 let lenis = null;
 
 function initLenis() {
@@ -32,8 +39,10 @@ function initLenis() {
 
   lenis = new Lenis({
     autoRaf: false,
-    duration: 1.2,
-    easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
+    // Mismo tacto que el carrusel de la home: la rueda mueve poco y el scroll tarda en asentarse
+    lerp: SMOOTH.lerp,
+    wheelMultiplier: SMOOTH.wheel,
+    touchMultiplier: SMOOTH.touch,
   });
   lenis.on("scroll", ScrollTrigger.update);
   let lastScroll = 0;
@@ -55,15 +64,12 @@ function initLenis() {
    ========================================================================== */
 
 const VIRTUAL = {
-  wheel: 1,       // píxeles por unidad de rueda
-  touch: 2.5,     // píxeles por píxel de arrastre
-  keyStep: 120,   // flechas
-  ease: 0.08,     // suavizado por fotograma
+  wheel: 0.5,     // píxeles por unidad de rueda
+  touch: 1.5,     // píxeles por píxel de arrastre
+  keyStep: 70,    // flechas
+  ease: 0.045,    // suavizado por fotograma (menos = más suave)
   shift: 8,       // recorrido del parallax de la foto (% de su alto)
 };
-
-// En la home el carrusel va más lento y más suave que en el índice de proyectos
-const VIRTUAL_HOME = { ...VIRTUAL, wheel: 0.5, touch: 1.5, keyStep: 70, ease: 0.045 };
 
 const virtual = { target: 0, current: 0, locked: false };
 const carousels = [];
@@ -98,7 +104,6 @@ function createCarousel(root) {
 
 function initVirtualScroll() {
   if (!isVirtualScroll()) return;
-  const settings = document.querySelector(".home") ? VIRTUAL_HOME : VIRTUAL;
 
   document.querySelectorAll("[data-carousel]").forEach((root) => carousels.push(createCarousel(root)));
   if (!carousels.length) return;
@@ -110,15 +115,15 @@ function initVirtualScroll() {
     onChangeY: (self) => {
       if (virtual.locked) return;
       const wheel = self.event.type === "wheel";
-      virtual.target += wheel ? self.deltaY * settings.wheel : -self.deltaY * settings.touch;
+      virtual.target += wheel ? self.deltaY * VIRTUAL.wheel : -self.deltaY * VIRTUAL.touch;
     },
   });
 
   window.addEventListener("keydown", (event) => {
     if (virtual.locked) return;
     const steps = {
-      ArrowDown: settings.keyStep,
-      ArrowUp: -settings.keyStep,
+      ArrowDown: VIRTUAL.keyStep,
+      ArrowUp: -VIRTUAL.keyStep,
       PageDown: window.innerHeight * 0.8,
       PageUp: -window.innerHeight * 0.8,
       " ": window.innerHeight * 0.8,
@@ -127,7 +132,7 @@ function initVirtualScroll() {
   });
 
   gsap.ticker.add(() => {
-    const k = reducedMotion ? 1 : smoothing(settings.ease);
+    const k = reducedMotion ? 1 : smoothing(VIRTUAL.ease);
     const before = virtual.current;
     virtual.current += (virtual.target - virtual.current) * k;
     carousels.forEach((carousel) => carousel.render(virtual.current));
@@ -161,9 +166,9 @@ const MENU = {
   fill: 0.05,            // inercia con la que el relleno blanco pasa de una fila a otra (menos = más retardado)
   fillPad: 6,            // píxeles que el relleno sobresale por los lados del texto
   fillReveal: 0.4,       // barrido de entrada y salida del relleno
-  wheel: 0.6,            // píxeles que avanza la lista por cada unidad de rueda
+  wheel: 0.5,            // píxeles que avanza la lista por cada unidad de rueda
   touch: 1.5,            // píxeles que avanza por cada píxel que se arrastra el dedo
-  scrollEase: 0.08,      // inercia del scroll de la lista (menos = más suave)
+  scrollEase: 0.05,      // inercia del scroll de la lista (menos = más suave)
   repelGap: 30,          // aire entre "Close," y los nombres que lo rodean
   repelRadius: 80,       // alto de la onda: a qué distancia vertical de "Close," empieza a apartar
 };
