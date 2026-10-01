@@ -654,13 +654,15 @@ html.lenis body {
 /* Alto 0 y pegado abajo: el texto flota sobre las fotos sin ocupar hueco */
 .project__description {
   position: sticky;
-  bottom: var(--margin);
+  bottom: 0;
   height: 0;
 }
 
+/* El margen de abajo lo lleva el párrafo: así, cuando el contenido se acaba y
+   el texto se queda, sigue a un margen del borde en vez de pegado a él */
 .project__description p {
   position: absolute;
-  bottom: 0;
+  bottom: var(--margin);
   left: calc(var(--margin) + var(--col) + var(--gutter));
   width: var(--col);
   line-height: 1.3;
