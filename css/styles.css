@@ -619,10 +619,8 @@ html.lenis body {
 
 /* ==========================================================================
    8. Proyecto
-   La portada a todo el ancho y luego las fotos a su proporción sobre la grid
-   de 4 columnas. Cada foto trae su sitio desde el HTML (--place); si no, las
-   horizontales van a todo el ancho y las verticales en las dos columnas de la
-   derecha. En una fila con alturas distintas, --align: end las apoya abajo. El texto se
+   La portada a todo el ancho y luego todas las fotos, horizontales y
+   verticales, a su proporción en las dos columnas de la derecha. El texto se
    queda pegado abajo. Al final, el siguiente proyecto y, detrás de todo, el
    footer, que queda al descubierto al llegar al final.
    ========================================================================== */
@@ -640,15 +638,13 @@ html.lenis body {
 }
 
 .project__gallery {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  column-gap: var(--gutter);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .shot {
-  grid-column: var(--place, 3 / span 2);
-  align-self: var(--align, start);
+  width: calc(50% - var(--gutter) / 2);
 }
 
 /* Alto 0 y pegado abajo: el texto flota sobre las fotos sin ocupar hueco */
@@ -844,7 +840,7 @@ html.lenis body {
   }
 
   .shot {
-    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .project__description p {
