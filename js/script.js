@@ -647,6 +647,142 @@ function initCurtains() {
 
 
 /* ==========================================================================
+   Pantalla de carga
+   Solo en la primera página de la visita. Una cuadrícula de porcentajes
+   escritos en palabras ("Five", "Ten"… "One hundred") cuenta hacia arriba
+   como una onda que nace en el centro y se abre hacia las esquinas. La cuenta
+   nunca va por delante de lo que de verdad lleva cargado la página: en un
+   ordenador rápido corre seguida y en uno lento espera. Cada palabra que
+   llega a "One hundred" sale con el barrido lateral de la web; cuando no
+   queda ninguna, aparece el nombre en el centro y las franjas abren la página.
+   ========================================================================== */
+
+const LOADER = {
+  desktop: { cols: 8, rows: 7 }, // filas alternas con una palabra menos, a tresbolillo
+  mobile: { cols: 3, rows: 9 },
+  step: 0.11,            // tiempo entre un número y el siguiente (segundos)
+  spread: 1,             // lo que tarda la onda en llegar del centro a las esquinas
+  hold: 0.12,            // "One hundred" se queda un instante antes de irse
+  wipe: 0.3,             // barrido de entrada y salida de cada palabra
+  ease: "power3.inOut",
+  name: 0.9,             // tiempo que se ve el nombre antes de abrir
+};
+
+const LOADER_WORDS = ["Five", "Ten", "Fifteen", "Twenty", "Twenty-five", "Thirty", "Thirty-five", "Forty", "Forty-five", "Fifty",
+  "Fifty-five", "Sixty", "Sixty-five", "Seventy", "Seventy-five", "Eighty", "Eighty-five", "Ninety", "Ninety-five", "One hundred"];
+
+function runLoader() {
+  const root = document.querySelector(".loader");
+  if (!root || !document.documentElement.classList.contains("is-loading")) return Promise.resolve();
+
+  try {
+    sessionStorage.setItem("loaded", "1");
+  } catch {}
+  lenis?.stop();
+  virtual.locked = true;
+
+  const finish = () => {
+    root.remove();
+    lenis?.start();
+    virtual.locked = false;
+  };
+
+  const enter = (element) => gsap.fromTo(element, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: LOADER.wipe, ease: LOADER.ease });
+  const exit = (element, onComplete) => gsap.to(element, { clipPath: "inset(0% 0% 0% 100%)", duration: LOADER.wipe, ease: LOADER.ease, onComplete });
+
+  // El nombre en el centro: entra, se queda un momento y sale; luego se abre la página
+  const showName = (resolve) => {
+    const name = document.createElement("p");
+    name.className = "loader__name";
+    name.innerHTML = `<span class="loader__word">Simplementesuarep</span>`;
+    root.append(name);
+    const word = name.firstElementChild;
+    const done = () => {
+      finish();
+      resolve();
+    };
+    if (reducedMotion) {
+      gsap.set(word, { clipPath: "inset(0% 0% 0% 0%)" });
+      gsap.delayedCall(LOADER.name, done);
+      return;
+    }
+    enter(word);
+    gsap.delayedCall(LOADER.wipe + LOADER.name, () => exit(word, done));
+  };
+
+  // Cuánto lleva cargado: las fotos que no esperan al scroll. El 100 % solo
+  // llega cuando el navegador da la página por cargada.
+  const images = [...document.images].filter((image) => image.loading !== "lazy");
+  const progress = () => {
+    if (document.readyState === "complete") return 1;
+    const done = images.filter((image) => image.complete).length;
+    return Math.min(0.95, done / Math.max(1, images.length));
+  };
+
+  return new Promise((resolve) => {
+    if (reducedMotion) {
+      if (document.readyState === "complete") showName(resolve);
+      else window.addEventListener("load", () => showName(resolve), { once: true });
+      return;
+    }
+
+    // Cuadrícula a tresbolillo: las filas pares llevan una palabra más que las
+    // impares, y la del centro cae justo en el medio de la pantalla
+    const layout = window.innerWidth < 768 ? LOADER.mobile : LOADER.desktop;
+    const cells = [];
+    for (let row = 0; row < layout.rows; row++) {
+      const odd = row % 2 === 1;
+      for (let col = 0; col < layout.cols - (odd ? 1 : 0); col++) {
+        const x = (col + (odd ? 1 : 0.5)) / layout.cols;
+        const y = (row + 0.5) / layout.rows;
+        const cell = document.createElement("span");
+        cell.className = "loader__cell";
+        cell.style.left = `${x * 100}%`;
+        cell.style.top = `${y * 100}%`;
+        const word = document.createElement("span");
+        word.className = "loader__word";
+        cell.append(word);
+        root.append(cell);
+        const distance = Math.hypot((x - 0.5) * window.innerWidth, (y - 0.5) * window.innerHeight);
+        cells.push({ word, distance, step: -1, reached: 0, gone: false });
+      }
+    }
+    const farthest = Math.max(...cells.map((cell) => cell.distance)) || 1;
+    cells.forEach((cell) => (cell.delay = (cell.distance / farthest) * LOADER.spread));
+
+    const last = LOADER_WORDS.length - 1;
+    const start = performance.now();
+    let left = cells.length;
+
+    const update = () => {
+      const time = (performance.now() - start) / 1000;
+      const loaded = progress();
+      const cap = loaded >= 1 ? last : Math.floor(loaded * last);
+      cells.forEach((cell) => {
+        if (cell.gone) return;
+        const step = Math.min(Math.floor((time - cell.delay) / LOADER.step), cap);
+        if (step > cell.step) {
+          if (cell.step < 0) enter(cell.word);
+          cell.step = step;
+          cell.word.textContent = LOADER_WORDS[step];
+          if (step === last) cell.reached = time;
+        }
+        if (cell.step === last && time - cell.reached > LOADER.hold) {
+          cell.gone = true;
+          exit(cell.word, () => {
+            left -= 1;
+            if (left === 0) showName(resolve);
+          });
+        }
+      });
+      if (cells.every((cell) => cell.gone)) gsap.ticker.remove(update);
+    };
+    gsap.ticker.add(update);
+  });
+}
+
+
+/* ==========================================================================
    6. Transición entre páginas
    Al salir, 10 franjas bajan y tapan la pantalla; al entrar, se retiran hacia
    abajo. Las franjas arrancan tapando (CSS) para que no se vea un salto.
@@ -1084,5 +1220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initMenu(transition);
 
   await document.fonts.ready;
-  transition.reveal();
+  await runLoader();
+  // Tras la pantalla de carga las franjas vuelven a su color de siempre
+  transition.reveal(() => document.documentElement.classList.remove("is-loading"));
 });

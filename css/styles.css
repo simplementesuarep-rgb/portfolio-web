@@ -46,6 +46,7 @@
   --color-text: #000;
   --color-tag: #fff; /* fondo de la etiqueta del cursor */
   --color-muted: #c4c4c4; /* el nombre del pie mientras está separado */
+  --color-loader: #adadad; /* fondo de la pantalla de carga */
   --color-ink: #fff; /* se usa con mix-blend-mode: difference */
 
   /* Movimiento */
@@ -499,6 +500,49 @@ html.lenis body {
 
 @keyframes transition-fallback {
   to { visibility: hidden; }
+}
+
+/* Pantalla de carga (script.js): solo en la primera página de la visita.
+   Las franjas de la transición hacen de fondo gris; encima, una cuadrícula de
+   porcentajes escritos en palabras, cada uno con su fondo blanco. Al terminar
+   aparece el nombre en el centro y las franjas se abren. */
+.is-loading .transition span {
+  background: var(--color-loader);
+}
+
+.loader {
+  display: none;
+}
+
+.js.is-loading .loader {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: block;
+  font-size: var(--fs-small);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+.loader__cell,
+.loader__name {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.loader__name {
+  top: 50%;
+  left: 50%;
+  font-size: var(--fs-body);
+}
+
+.loader__word {
+  display: inline-block;
+  padding: 2px 4px;
+  background: var(--color-tag);
+  clip-path: inset(0 100% 0 0);
 }
 
 
